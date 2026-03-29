@@ -1,6 +1,7 @@
 import { Routes, Route } from 'react-router-dom';
 import Header from './components/layout/Header';
 import Footer from './components/layout/Footer';
+import HomePage from './pages/HomePage';
 import SearchPage from './pages/SearchPage';
 import ProjectPage from './pages/ProjectPage';
 import GrantMatchPage from './pages/GrantMatchPage';
@@ -13,7 +14,8 @@ export default function App() {
       <Header />
       <main className="flex-1">
         <Routes>
-          <Route path="/" element={<SearchPage />} />
+          <Route path="/" element={<HomePage />} />
+          <Route path="/search" element={<SearchPage />} />
           <Route path="/project/:id" element={<ProjectPage />} />
           <Route path="/grant-match" element={<GrantMatchPage />} />
           <Route path="/profile-match" element={<ProfileMatchPage />} />

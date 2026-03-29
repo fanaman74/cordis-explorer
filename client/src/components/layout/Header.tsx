@@ -22,27 +22,6 @@ export default function Header() {
           <span className="text-lg font-semibold tracking-tight">CORDIS Explorer</span>
         </Link>
         <div className="flex items-center gap-3">
-          <Link
-            to="/grant-search"
-            className="text-sm font-semibold text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] transition-colors no-underline"
-          >
-            Grant Search
-          </Link>
-          <Link
-            to="/profile-match"
-            className="text-sm font-semibold text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] transition-colors no-underline"
-          >
-            Profile Match
-          </Link>
-          <Link
-            to="/grant-match"
-            className="flex items-center gap-1.5 text-sm font-semibold text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] transition-colors no-underline"
-          >
-            GrantMatch
-            <span className="bg-[color-mix(in_srgb,var(--color-amber)_15%,transparent)] text-[var(--color-amber)] border border-[color-mix(in_srgb,var(--color-amber)_30%,transparent)] rounded-full text-[10px] font-bold px-1.5 py-0.5">
-              NEW
-            </span>
-          </Link>
           <button
             onClick={() => setIsDark(!isDark)}
             className="w-9 h-9 rounded-lg bg-[var(--color-bg-card)] border border-[var(--color-border)] flex items-center justify-center text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] hover:border-[var(--color-border-light)] transition-colors cursor-pointer"
