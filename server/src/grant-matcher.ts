@@ -16,19 +16,17 @@ const STAGE_TRL: Record<string, [number, number]> = {
   'Established': [8, 9],
 };
 
-// EU SME: < 250 employees. All teamSize options qualify by headcount.
-const LARGE_COMPANY_TEAM_SIZES = new Set<string>(); // none of the options exceed 250
-
 export function runBooleanFilters(profile: StartupProfile, call: FundingCall): boolean {
-  // Country check
-  const isEligibleCountry =
-    call.eligibleCountries.includes('EU') ||
-    call.eligibleCountries.includes('EEA') ||
-    call.eligibleCountries.includes(profile.countryOfTaxResidence);
-  if (!isEligibleCountry) return false;
+  // Country check is now handled by getCallsForProfile() which uses
+  // proper eligibility tags (EU+AC, EU+DEP, EUREKA, etc.)
+  // We skip re-checking country here since getCallsForProfile already filtered.
 
-  // SME-only calls: all our teamSize options are < 250 so they all qualify
-  if (call.smeOnly && LARGE_COMPANY_TEAM_SIZES.has(profile.teamSize)) return false;
+  // SME-only calls: check if org type qualifies
+  // Research Organisations and large entities don't qualify for SME-only calls
+  if (call.smeOnly) {
+    const nonSmeTypes = new Set(['Research Organisation', 'Non-profit / NGO']);
+    if (nonSmeTypes.has(profile.organisationType)) return false;
+  }
 
   // TRL check: if call has minTrl, startup stage must reach it
   if (call.minTrl !== undefined) {
@@ -153,9 +151,9 @@ export async function matchProfile(profile: StartupProfile): Promise<MatchResult
 
   const count = profile.matchCount ?? 5;
 
-  // Stage 2: Claude semantic scoring — score enough candidates to satisfy the requested count
-  const toScore = eligible.slice(0, Math.min(eligible.length, count + 3));
-  const results = await Promise.all(toScore.map(call => scoreCallWithClaude(profile, call)));
+  // Stage 2: Claude semantic scoring — score ALL eligible calls in parallel
+  // With 15 curated calls, scoring all ensures we never miss the best matches
+  const results = await Promise.all(eligible.map(call => scoreCallWithClaude(profile, call)));
 
   // Sort by score descending, return top `count`
   return results.sort((a, b) => b.matchScore - a.matchScore).slice(0, count);
