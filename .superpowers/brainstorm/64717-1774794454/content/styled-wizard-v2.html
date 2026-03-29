@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GrantMatch — Styled Preview v2</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'DM Sans', system-ui, sans-serif;
+    background: #0B1120;
+    color: #e2e8f0;
+    min-height: 100vh;
+  }
+  .nav {
+    background: rgba(15,23,42,0.95);
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+    padding: 0 24px;
+    height: 56px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .nav-logo { width: 28px; height: 28px; background: #1D4ED8; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 12px; color: white; }
+  .nav-title { font-weight: 700; font-size: 15px; color: #f1f5f9; }
+  .nav-badge { margin-left: 8px; background: rgba(245,158,11,0.15); color: #F59E0B; border: 1px solid rgba(245,158,11,0.3); border-radius: 20px; font-size: 11px; padding: 2px 8px; font-weight: 600; }
+
+  .page { max-width: 640px; margin: 0 auto; padding: 48px 24px 80px; }
+
+  .hero-label { display: inline-block; background: rgba(245,158,11,0.12); color: #F59E0B; border: 1px solid rgba(245,158,11,0.25); border-radius: 20px; font-size: 12px; font-weight: 600; padding: 4px 12px; margin-bottom: 16px; }
+  h1 { font-size: 28px; font-weight: 800; color: #f1f5f9; line-height: 1.2; letter-spacing: -0.5px; margin-bottom: 10px; }
+  h1 span { color: #60A5FA; }
+  .hero-sub { color: #94a3b8; font-size: 14px; line-height: 1.6; margin-bottom: 32px; }
+
+  .progress-bar { display: flex; gap: 6px; margin-bottom: 8px; }
+  .progress-step { flex: 1; height: 3px; border-radius: 2px; background: rgba(255,255,255,0.1); }
+  .progress-step.done { background: #3B82F6; }
+  .progress-step.active { background: #60A5FA; }
+  .progress-label { font-size: 11px; color: #64748b; margin-bottom: 20px; }
+  .progress-label span { color: #94a3b8; }
+
+  .glass-card { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08); border-radius: 16px; backdrop-filter: blur(12px); padding: 28px; }
+
+  .step-title { font-size: 17px; font-weight: 700; color: #f1f5f9; margin-bottom: 20px; display: flex; align-items: center; gap: 8px; }
+  .step-num { width: 24px; height: 24px; background: #1D4ED8; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; color: white; flex-shrink: 0; }
+
+  .field-group { display: grid; gap: 14px; }
+  .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+  .field label { display: block; font-size: 12px; font-weight: 600; color: #94a3b8; margin-bottom: 5px; text-transform: uppercase; letter-spacing: 0.4px; }
+  .field label .req { color: #F59E0B; }
+  .field input, .field select, .field textarea { width: 100%; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; padding: 9px 12px; color: #e2e8f0; font-size: 13px; font-family: inherit; outline: none; }
+  .field input::placeholder, .field textarea::placeholder { color: #475569; }
+  .field select { appearance: none; cursor: pointer; }
+  .field select option { background: #1e293b; }
+  .field textarea { resize: vertical; min-height: 80px; line-height: 1.5; }
+
+  .btn-row { display: flex; justify-content: space-between; align-items: center; margin-top: 24px; }
+  .btn-back { padding: 9px 18px; border-radius: 8px; font-size: 13px; font-weight: 600; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); color: #94a3b8; cursor: pointer; }
+  .btn-next { padding: 9px 22px; border-radius: 8px; font-size: 13px; font-weight: 600; background: #1D4ED8; border: none; color: white; cursor: pointer; }
+  .btn-scan { padding: 10px 24px; border-radius: 8px; font-size: 13px; font-weight: 700; background: linear-gradient(135deg, #1D4ED8, #2563EB); border: none; color: white; cursor: pointer; letter-spacing: 0.3px; }
+
+  /* Results section — below the form */
+  .results-section { margin-top: 40px; }
+  .results-header { margin-bottom: 20px; display: flex; justify-content: space-between; align-items: flex-end; }
+  .results-header h2 { font-size: 20px; font-weight: 800; color: #f1f5f9; }
+  .results-header p { font-size: 13px; color: #64748b; margin-top: 3px; }
+  .download-btn { display: flex; align-items: center; gap: 6px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; padding: 7px 12px; font-size: 12px; color: #94a3b8; cursor: pointer; white-space: nowrap; }
+
+  .match-card { border-radius: 12px; padding: 18px; margin-bottom: 10px; border: 1px solid; }
+  .match-card.go { background: rgba(34,197,94,0.04); border-color: rgba(34,197,94,0.2); }
+  .match-card.maybe { background: rgba(245,158,11,0.04); border-color: rgba(245,158,11,0.2); }
+  .match-card.nogo { background: rgba(239,68,68,0.04); border-color: rgba(239,68,68,0.15); }
+
+  .match-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; margin-bottom: 5px; }
+  .match-title { font-size: 14px; font-weight: 700; color: #f1f5f9; }
+  .match-meta { font-size: 12px; color: #64748b; margin-bottom: 8px; }
+
+  .verdict-badge { padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 700; white-space: nowrap; flex-shrink: 0; }
+  .go .verdict-badge { background: rgba(34,197,94,0.15); color: #4ade80; border: 1px solid rgba(34,197,94,0.3); }
+  .maybe .verdict-badge { background: rgba(245,158,11,0.15); color: #fbbf24; border: 1px solid rgba(245,158,11,0.3); }
+  .nogo .verdict-badge { background: rgba(239,68,68,0.15); color: #f87171; border: 1px solid rgba(239,68,68,0.3); }
+
+  .match-points { font-size: 12px; display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 8px; }
+  .pt-good { color: #4ade80; }
+  .pt-warn { color: #fbbf24; }
+  .pt-bad { color: #f87171; }
+
+  .match-reasoning { font-size: 12px; color: #64748b; line-height: 1.5; border-top: 1px solid rgba(255,255,255,0.06); padding-top: 8px; }
+
+  .divider { border: none; border-top: 1px solid rgba(255,255,255,0.06); margin: 36px 0; }
+
+  .scan-loading { text-align: center; padding: 32px; color: #64748b; font-size: 13px; }
+  .scan-loading .spinner { width: 28px; height: 28px; border: 2px solid rgba(59,130,246,0.2); border-top-color: #3B82F6; border-radius: 50%; animation: spin 0.8s linear infinite; margin: 0 auto 12px; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+</style>
+</head>
+<body>
+
+<div class="nav">
+  <div class="nav-logo">EU</div>
+  <div class="nav-title">CORDIS Explorer</div>
+  <div class="nav-badge">GrantMatch</div>
+</div>
+
+<div class="page">
+
+  <div class="hero-label">100% Free · AI-Powered</div>
+  <h1>Find EU Grants That <span>Match Your Startup</span></h1>
+  <p class="hero-sub">Answer a few questions and we'll scan 900+ open EU funding calls — ranked by how well they fit your profile.</p>
+
+  <!-- Wizard: Step 2 example -->
+  <div class="progress-bar">
+    <div class="progress-step done"></div>
+    <div class="progress-step active"></div>
+    <div class="progress-step"></div>
+  </div>
+  <div class="progress-label">
+    Step 1: About You ✓ &nbsp;→&nbsp; <span>Step 2: Your Startup</span> &nbsp;→&nbsp; Step 3: Funding Readiness
+  </div>
+
+  <div class="glass-card">
+    <div class="step-title">
+      <span class="step-num">2</span>
+      Your Startup
+    </div>
+    <div class="field-group">
+      <div class="field-row">
+        <div class="field">
+          <label>Organisation Type <span class="req">*</span></label>
+          <select><option>Startup</option></select>
+        </div>
+        <div class="field">
+          <label>Sector <span class="req">*</span></label>
+          <select><option>AI / Machine Learning</option></select>
+        </div>
+      </div>
+      <div class="field-row">
+        <div class="field">
+          <label>Country (Tax) <span class="req">*</span></label>
+          <select><option>Ireland</option></select>
+        </div>
+        <div class="field">
+          <label>Country of Incorporation</label>
+          <select><option>— optional —</option></select>
+        </div>
+      </div>
+      <div class="field">
+        <label>Product / Service Description <span class="req">*</span></label>
+        <textarea placeholder="Describe your product or service in 2-3 sentences. Be specific. This helps us match you accurately."></textarea>
+      </div>
+      <div class="field">
+        <label>Stage <span class="req">*</span></label>
+        <select><option>MVP / Prototype</option></select>
+      </div>
+    </div>
+    <div class="btn-row">
+      <button class="btn-back">← Back</button>
+      <button class="btn-next">Next →</button>
+    </div>
+  </div>
+
+  <hr class="divider">
+
+  <!-- Results below the form -->
+  <div class="results-section">
+    <div class="results-header">
+      <div>
+        <h2>Your Top Matches</h2>
+        <p>Scanned 847 open calls · Acme AI Ltd · Ireland</p>
+      </div>
+      <div class="download-btn">⬇ Download Profile (.md)</div>
+    </div>
+
+    <div class="match-card go">
+      <div class="match-top">
+        <div class="match-title">EIC Accelerator 2026</div>
+        <div class="verdict-badge">87 · GO</div>
+      </div>
+      <div class="match-meta">Horizon Europe · Budget: up to €2.5M · Deadline: Jun 2026</div>
+      <div class="match-points">
+        <span class="pt-good">✓ Deep tech AI mandate</span>
+        <span class="pt-good">✓ SME-eligible</span>
+        <span class="pt-good">✓ Irish entity</span>
+      </div>
+      <div class="match-reasoning">Strong alignment with 2026 EIC priorities for AI hardware. Grant + equity structure suits early-stage hardware startups.</div>
+    </div>
+
+    <div class="match-card maybe">
+      <div class="match-top">
+        <div class="match-title">Horizon Pathfinder 2026</div>
+        <div class="verdict-badge">71 · MAYBE</div>
+      </div>
+      <div class="match-meta">Horizon Europe · Budget: up to €3M · Deadline: Sep 2026</div>
+      <div class="match-points">
+        <span class="pt-good">✓ Fits scope</span>
+        <span class="pt-warn">⚠ Consortium may be required</span>
+      </div>
+      <div class="match-reasoning">Tangentially aligned. Consortium requirement is a risk for solo startups — consider partnering with a university.</div>
+    </div>
+
+    <div class="match-card nogo">
+      <div class="match-top">
+        <div class="match-title">Digital Europe — AI Testing</div>
+        <div class="verdict-badge">38 · NO-GO</div>
+      </div>
+      <div class="match-meta">Digital Europe · Budget: €500K · Deadline: Mar 2026</div>
+      <div class="match-points">
+        <span class="pt-bad">✗ Stage mismatch</span>
+        <span class="pt-bad">✗ Requires TRL 7+</span>
+      </div>
+      <div class="match-reasoning">Call requires demonstrated market validation. Pivot pitch to focus on deployed pilots to become eligible in 2027 cycle.</div>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

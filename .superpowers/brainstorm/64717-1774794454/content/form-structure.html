@@ -1,0 +1,84 @@
+<h2>How should the form be structured?</h2>
+<p class="subtitle">14 fields total — choose the layout that fits best</p>
+
+<div class="options">
+  <div class="option" data-choice="a" onclick="toggleSelect(this)">
+    <div class="letter">A</div>
+    <div class="content">
+      <h3>Single Page</h3>
+      <p>All 14 fields on one scrollable page — mirrors the EuroFounders original exactly. Simple, fast, no navigation.</p>
+      <div style="margin-top:12px">
+        <div class="mockup" style="font-size:12px">
+          <div class="mockup-header">GrantMatch — Startup Profile</div>
+          <div class="mockup-body" style="padding:12px;display:grid;gap:6px">
+            <div class="mock-input" style="height:22px">Email *</div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
+              <div class="mock-input" style="height:22px">First Name *</div>
+              <div class="mock-input" style="height:22px">Last Name *</div>
+            </div>
+            <div class="mock-input" style="height:22px">Organisation Name *</div>
+            <div class="mock-input" style="height:22px">Organisation Type *</div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
+              <div class="mock-input" style="height:22px">Country *</div>
+              <div class="mock-input" style="height:22px">Sector *</div>
+            </div>
+            <div class="mock-input" style="height:40px">Product Description * (textarea)</div>
+            <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px">
+              <div class="mock-input" style="height:22px">Stage *</div>
+              <div class="mock-input" style="height:22px">Team Size *</div>
+              <div class="mock-input" style="height:22px">TRL *</div>
+            </div>
+            <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
+              <div class="mock-input" style="height:22px">Revenue</div>
+              <div class="mock-input" style="height:22px">R&D Activity *</div>
+            </div>
+            <div class="mock-input" style="height:22px">Co-funding Capacity</div>
+            <div class="mock-button" style="text-align:center;margin-top:4px">SCAN MY PROFILE →</div>
+          </div>
+        </div>
+      </div>
+      <div class="pros-cons" style="margin-top:8px">
+        <div class="pros"><h4>Pros</h4><ul><li>Fastest to fill</li><li>Matches EuroFounders</li></ul></div>
+        <div class="cons"><h4>Cons</h4><ul><li>Can feel overwhelming</li></ul></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="option" data-choice="b" onclick="toggleSelect(this)">
+    <div class="letter">B</div>
+    <div class="content">
+      <h3>3-Step Wizard</h3>
+      <p>Fields split into logical steps with a progress bar. Feels guided and professional.</p>
+      <div style="margin-top:12px">
+        <div class="mockup" style="font-size:12px">
+          <div class="mockup-header">GrantMatch — Step 2 of 3: Your Startup</div>
+          <div class="mockup-body" style="padding:12px">
+            <div style="display:flex;gap:4px;margin-bottom:12px">
+              <div style="flex:1;height:4px;background:#3B82F6;border-radius:2px"></div>
+              <div style="flex:1;height:4px;background:#3B82F6;border-radius:2px"></div>
+              <div style="flex:1;height:4px;background:#e5e7eb;border-radius:2px"></div>
+            </div>
+            <div style="font-size:10px;color:#6b7280;margin-bottom:8px">Step 1: About You &nbsp;✓&nbsp; Step 2: Your Startup &nbsp;•&nbsp; Step 3: Funding Readiness</div>
+            <div style="display:grid;gap:6px">
+              <div class="mock-input" style="height:22px">Organisation Type *</div>
+              <div class="mock-input" style="height:22px">Sector *</div>
+              <div class="mock-input" style="height:40px">Product / Service Description * (textarea)</div>
+              <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
+                <div class="mock-input" style="height:22px">Stage *</div>
+                <div class="mock-input" style="height:22px">Current TRL *</div>
+              </div>
+            </div>
+            <div style="display:flex;justify-content:space-between;margin-top:12px">
+              <div class="mock-button" style="background:#e5e7eb;color:#374151">← Back</div>
+              <div class="mock-button">Next →</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="pros-cons" style="margin-top:8px">
+        <div class="pros"><h4>Pros</h4><ul><li>Less intimidating</li><li>Clear progress</li><li>Better mobile UX</li></ul></div>
+        <div class="cons"><h4>Cons</h4><ul><li>More clicks</li></ul></div>
+      </div>
+    </div>
+  </div>
+</div>

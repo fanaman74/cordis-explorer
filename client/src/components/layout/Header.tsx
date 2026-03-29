@@ -1,0 +1,65 @@
+import { Link } from 'react-router-dom';
+import { useState, useEffect } from 'react';
+
+export default function Header() {
+  const [isDark, setIsDark] = useState(() => {
+    const stored = localStorage.getItem('cordis-theme');
+    return stored ? stored === 'dark' : true;
+  });
+
+  useEffect(() => {
+    document.documentElement.className = isDark ? 'dark' : 'light';
+    localStorage.setItem('cordis-theme', isDark ? 'dark' : 'light');
+  }, [isDark]);
+
+  return (
+    <header className="border-b border-[var(--color-border)] bg-[var(--color-bg-secondary)]">
+      <div className="max-w-7xl mx-auto px-4 h-14 flex items-center justify-between">
+        <Link to="/" className="flex items-center gap-2 text-[var(--color-text-primary)] no-underline">
+          <div className="w-8 h-8 rounded bg-[var(--color-eu-blue)] flex items-center justify-center text-white font-bold text-sm">
+            EU
+          </div>
+          <span className="text-lg font-semibold tracking-tight">CORDIS Explorer</span>
+        </Link>
+        <div className="flex items-center gap-3">
+          <Link
+            to="/grant-search"
+            className="text-sm font-semibold text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] transition-colors no-underline"
+          >
+            Grant Search
+          </Link>
+          <Link
+            to="/profile-match"
+            className="text-sm font-semibold text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] transition-colors no-underline"
+          >
+            Profile Match
+          </Link>
+          <Link
+            to="/grant-match"
+            className="flex items-center gap-1.5 text-sm font-semibold text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] transition-colors no-underline"
+          >
+            GrantMatch
+            <span className="bg-[color-mix(in_srgb,var(--color-amber)_15%,transparent)] text-[var(--color-amber)] border border-[color-mix(in_srgb,var(--color-amber)_30%,transparent)] rounded-full text-[10px] font-bold px-1.5 py-0.5">
+              NEW
+            </span>
+          </Link>
+          <button
+            onClick={() => setIsDark(!isDark)}
+            className="w-9 h-9 rounded-lg bg-[var(--color-bg-card)] border border-[var(--color-border)] flex items-center justify-center text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] hover:border-[var(--color-border-light)] transition-colors cursor-pointer"
+            title={isDark ? 'Switch to light mode' : 'Switch to dark mode'}
+          >
+            {isDark ? '\u2600\uFE0F' : '\uD83C\uDF19'}
+          </button>
+          <a
+            href="https://cordis.europa.eu/datalab"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-sm text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)] transition-colors no-underline"
+          >
+            About
+          </a>
+        </div>
+      </div>
+    </header>
+  );
+}

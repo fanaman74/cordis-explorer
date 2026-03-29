@@ -1,0 +1,123 @@
+<h2>3-Step Wizard Layout</h2>
+<p class="subtitle">Field grouping + results view — does this feel right?</p>
+
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:8px">
+
+  <!-- Step 1 -->
+  <div class="mockup" style="font-size:11px">
+    <div class="mockup-header">Step 1 of 3 — About You</div>
+    <div class="mockup-body" style="padding:12px">
+      <div style="display:flex;gap:4px;margin-bottom:10px">
+        <div style="flex:1;height:3px;background:#3B82F6;border-radius:2px"></div>
+        <div style="flex:1;height:3px;background:#e5e7eb;border-radius:2px"></div>
+        <div style="flex:1;height:3px;background:#e5e7eb;border-radius:2px"></div>
+      </div>
+      <div style="display:grid;gap:6px">
+        <div class="mock-input" style="height:22px;font-size:10px">Email *</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
+          <div class="mock-input" style="height:22px;font-size:10px">First Name *</div>
+          <div class="mock-input" style="height:22px;font-size:10px">Last Name *</div>
+        </div>
+        <div class="mock-input" style="height:22px;font-size:10px">Organisation Name *</div>
+      </div>
+      <div style="display:flex;justify-content:flex-end;margin-top:10px">
+        <div class="mock-button" style="font-size:10px">Next →</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Step 2 -->
+  <div class="mockup" style="font-size:11px">
+    <div class="mockup-header">Step 2 of 3 — Your Startup</div>
+    <div class="mockup-body" style="padding:12px">
+      <div style="display:flex;gap:4px;margin-bottom:10px">
+        <div style="flex:1;height:3px;background:#3B82F6;border-radius:2px"></div>
+        <div style="flex:1;height:3px;background:#3B82F6;border-radius:2px"></div>
+        <div style="flex:1;height:3px;background:#e5e7eb;border-radius:2px"></div>
+      </div>
+      <div style="display:grid;gap:6px">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
+          <div class="mock-input" style="height:22px;font-size:10px">Organisation Type *</div>
+          <div class="mock-input" style="height:22px;font-size:10px">Sector *</div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
+          <div class="mock-input" style="height:22px;font-size:10px">Country (Tax) *</div>
+          <div class="mock-input" style="height:22px;font-size:10px">Country (Incorp.)</div>
+        </div>
+        <div class="mock-input" style="height:38px;font-size:10px">Product / Service Description * (textarea)</div>
+        <div class="mock-input" style="height:22px;font-size:10px">Stage *</div>
+      </div>
+      <div style="display:flex;justify-content:space-between;margin-top:10px">
+        <div class="mock-button" style="font-size:10px;background:#e5e7eb;color:#374151">← Back</div>
+        <div class="mock-button" style="font-size:10px">Next →</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Step 3 -->
+  <div class="mockup" style="font-size:11px">
+    <div class="mockup-header">Step 3 of 3 — Funding Readiness</div>
+    <div class="mockup-body" style="padding:12px">
+      <div style="display:flex;gap:4px;margin-bottom:10px">
+        <div style="flex:1;height:3px;background:#3B82F6;border-radius:2px"></div>
+        <div style="flex:1;height:3px;background:#3B82F6;border-radius:2px"></div>
+        <div style="flex:1;height:3px;background:#3B82F6;border-radius:2px"></div>
+      </div>
+      <div style="display:grid;gap:6px">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
+          <div class="mock-input" style="height:22px;font-size:10px">Team Size *</div>
+          <div class="mock-input" style="height:22px;font-size:10px">Annual Revenue</div>
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
+          <div class="mock-input" style="height:22px;font-size:10px">R&D Activity *</div>
+          <div class="mock-input" style="height:22px;font-size:10px">Co-funding Capacity</div>
+        </div>
+        <div style="font-size:10px;color:#374151;margin-top:4px">☐ GDPR Consent *</div>
+        <div style="font-size:10px;color:#374151">☐ Newsletter Consent</div>
+        <div style="font-size:10px;color:#374151">☐ Terms & Conditions *</div>
+      </div>
+      <div style="display:flex;justify-content:space-between;margin-top:10px">
+        <div class="mock-button" style="font-size:10px;background:#e5e7eb;color:#374151">← Back</div>
+        <div class="mock-button" style="font-size:10px;background:#2563EB">🔍 Scan My Profile</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Results -->
+  <div class="mockup" style="font-size:11px">
+    <div class="mockup-header">Results — Top Matches for Acme AI Ltd</div>
+    <div class="mockup-body" style="padding:12px">
+      <div style="font-size:10px;color:#6b7280;margin-bottom:8px">Scanned 847 open calls · 3 strong matches found</div>
+      <div style="display:grid;gap:6px">
+        <div style="border:1px solid #d1fae5;border-radius:5px;padding:7px;background:#f0fdf4">
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <span style="font-weight:600;font-size:10px">EIC Accelerator 2026</span>
+            <span style="background:#22c55e;color:white;padding:1px 5px;border-radius:8px;font-size:9px;font-weight:700">87 · GO</span>
+          </div>
+          <div style="font-size:9px;color:#6b7280;margin-top:2px">Deadline: Jun 2026 · Budget: up to €2.5M</div>
+          <div style="font-size:9px;color:#374151;margin-top:3px">✓ Deep tech AI · ✓ SME-eligible · ✓ Irish entity</div>
+        </div>
+        <div style="border:1px solid #fef3c7;border-radius:5px;padding:7px;background:#fffbeb">
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <span style="font-weight:600;font-size:10px">Horizon Pathfinder 2026</span>
+            <span style="background:#f59e0b;color:white;padding:1px 5px;border-radius:8px;font-size:9px;font-weight:700">71 · MAYBE</span>
+          </div>
+          <div style="font-size:9px;color:#6b7280;margin-top:2px">Deadline: Sep 2026 · Budget: up to €3M</div>
+          <div style="font-size:9px;color:#374151;margin-top:3px">✓ Fits scope · ⚠ Consortium may be required</div>
+        </div>
+        <div style="border:1px solid #fee2e2;border-radius:5px;padding:7px;background:#fef2f2">
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <span style="font-weight:600;font-size:10px">Digital Europe — AI Testing</span>
+            <span style="background:#ef4444;color:white;padding:1px 5px;border-radius:8px;font-size:9px;font-weight:700">38 · NO-GO</span>
+          </div>
+          <div style="font-size:9px;color:#6b7280;margin-top:2px">Deadline: Mar 2026 · Budget: €500K</div>
+          <div style="font-size:9px;color:#374151;margin-top:3px">✗ Stage mismatch · ✗ Requires TRL 7+</div>
+        </div>
+      </div>
+      <div style="text-align:center;margin-top:8px">
+        <div class="mock-button" style="font-size:9px;display:inline-block">⬇ Download Profile (.md)</div>
+      </div>
+    </div>
+  </div>
+
+</div>
