@@ -1,6 +1,21 @@
 import { config } from 'dotenv';
 import { resolve } from 'path';
-config({ path: resolve(process.cwd(), '../.env') });
+import { existsSync } from 'fs';
+// Find .env regardless of where the server process is started from
+const envCandidates = [
+  resolve(__dirname, '../../.env'),
+  resolve(process.cwd(), '.env'),
+  resolve(process.cwd(), '../.env'),
+];
+console.log('[dotenv] cwd:', process.cwd(), '| __dirname:', __dirname);
+for (const p of envCandidates) {
+  if (existsSync(p)) {
+    config({ path: p });
+    console.log('[dotenv] loaded from:', p, '| key set:', !!process.env.ANTHROPIC_API_KEY);
+    break;
+  }
+  console.log('[dotenv] not found at:', p);
+}
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
