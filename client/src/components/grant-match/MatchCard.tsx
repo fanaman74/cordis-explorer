@@ -38,6 +38,43 @@ export default function MatchCard({ result }: { result: MatchResult }) {
               {result.deadline && <span>Deadline: {result.deadline}</span>}
             </p>
           )}
+          <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
+            {/* Consortium / solo */}
+            {result.consortiumRequired ? (
+              <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-violet-500/10 text-violet-400 border border-violet-500/20">
+                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a4 4 0 00-4-4h-1M9 20H4v-2a4 4 0 014-4h1m4-4a4 4 0 100-8 4 4 0 000 8z" />
+                </svg>
+                Consortium · {result.minPartners}+ partners · {result.minCountries}+ countries
+              </span>
+            ) : (
+              <span className="inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full bg-sky-500/10 text-sky-400 border border-sky-500/20">
+                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                </svg>
+                Solo application
+              </span>
+            )}
+            {/* Funding type */}
+            {result.fundingType === 'grant' && (
+              <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-emerald-500/8 text-emerald-400 border border-emerald-500/20">Grant</span>
+            )}
+            {result.fundingType === 'blended' && (
+              <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-amber-500/10 text-amber-400 border border-amber-500/20">Grant + Equity</span>
+            )}
+            {result.fundingType === 'guarantee' && (
+              <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-orange-500/10 text-orange-400 border border-orange-500/20">Loan / Guarantee</span>
+            )}
+            {result.fundingType === 'fellowship' && (
+              <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-pink-500/10 text-pink-400 border border-pink-500/20">Fellowship</span>
+            )}
+            {/* TRL range */}
+            {result.minTrl !== undefined && (
+              <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-slate-500/10 text-slate-400 border border-slate-500/20">
+                TRL {result.minTrl}{result.maxTrl ? `–${result.maxTrl}` : '+'}
+              </span>
+            )}
+          </div>
         </div>
         <div className="flex items-center gap-2 shrink-0">
           <span className={`px-2.5 py-1 rounded-full text-xs font-bold ${styles.badge}`}>
@@ -53,7 +90,21 @@ export default function MatchCard({ result }: { result: MatchResult }) {
       </button>
 
       {expanded && (
-        <div className="px-4 pb-4 border-t border-[var(--color-border)] pt-3 space-y-2">
+        <div className="px-4 pb-4 border-t border-[var(--color-border)] pt-3 space-y-3">
+          {/* Effort & odds */}
+          {(result.typicalSuccessRate || result.applicationEffortHours || result.timeToMoneyMonths) && (
+            <div className="flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-[var(--color-text-muted)] pb-2 border-b border-[var(--color-border)]">
+              {result.typicalSuccessRate && (
+                <span><span className="font-semibold text-[var(--color-text-secondary)]">Success rate:</span> {result.typicalSuccessRate}</span>
+              )}
+              {result.applicationEffortHours && (
+                <span><span className="font-semibold text-[var(--color-text-secondary)]">Application effort:</span> ~{result.applicationEffortHours}h</span>
+              )}
+              {result.timeToMoneyMonths && (
+                <span><span className="font-semibold text-[var(--color-text-secondary)]">Time to funding:</span> ~{result.timeToMoneyMonths} months</span>
+              )}
+            </div>
+          )}
           <div className="flex flex-wrap gap-x-3 gap-y-1 text-xs">
             {result.reasoning.strengths.map(s => (
               <span key={s} className="text-emerald-400">✓ {s}</span>

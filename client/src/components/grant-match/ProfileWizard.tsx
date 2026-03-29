@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import type { StartupProfile, MatchResult } from '../../api/types';
+import type { StartupProfile } from '../../api/types';
 import Step1Contact from './Step1Contact';
 import Step2Startup from './Step2Startup';
 import Step3Funding from './Step3Funding';
@@ -11,7 +11,7 @@ const STEP_LABELS = ['About You', 'Your Startup', 'Funding Readiness'];
 export default function ProfileWizard() {
   const [step, setStep] = useState(0);
   const [data, setData] = useState<Partial<StartupProfile>>({});
-  const { mutate, isPending, isError, error, data: results } = useGrantMatch();
+  const { mutate, isPending, isError, error, data: matchData } = useGrantMatch();
 
   function update(updates: Partial<StartupProfile>) {
     setData(prev => ({ ...prev, ...updates }));
@@ -60,8 +60,8 @@ export default function ProfileWizard() {
       )}
 
       {/* Results */}
-      {results && results.length >= 0 && (
-        <MatchResults profile={data as StartupProfile} results={results as MatchResult[]} />
+      {matchData && (
+        <MatchResults profile={data as StartupProfile} results={matchData.results} filteredCalls={matchData.filteredCalls} />
       )}
     </div>
   );

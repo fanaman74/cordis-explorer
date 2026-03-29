@@ -1,4 +1,5 @@
-import type { MatchResult, StartupProfile } from '../../api/types';
+import { useState } from 'react';
+import type { MatchResult, FilteredCall, StartupProfile } from '../../api/types';
 import MatchCard from './MatchCard';
 
 function generateMarkdown(profile: StartupProfile, results: MatchResult[]): string {
@@ -56,9 +57,11 @@ function downloadMarkdown(profile: StartupProfile, results: MatchResult[]) {
 interface Props {
   profile: StartupProfile;
   results: MatchResult[];
+  filteredCalls: FilteredCall[];
 }
 
-export default function MatchResults({ profile, results }: Props) {
+export default function MatchResults({ profile, results, filteredCalls }: Props) {
+  const [showFiltered, setShowFiltered] = useState(false);
   return (
     <div className="mt-10">
       <div className="flex items-end justify-between mb-5">
@@ -106,6 +109,42 @@ export default function MatchResults({ profile, results }: Props) {
       ) : (
         <div className="space-y-3">
           {results.map(r => <MatchCard key={r.callId} result={r} />)}
+        </div>
+      )}
+
+      {filteredCalls.length > 0 && (
+        <div className="mt-6">
+          <button
+            onClick={() => setShowFiltered(f => !f)}
+            className="flex items-center gap-2 text-xs text-[var(--color-text-muted)] hover:text-[var(--color-text-secondary)] transition-colors"
+          >
+            <svg
+              className={`w-3.5 h-3.5 transition-transform ${showFiltered ? 'rotate-90' : ''}`}
+              fill="none" stroke="currentColor" viewBox="0 0 24 24"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+            </svg>
+            {filteredCalls.length} call{filteredCalls.length !== 1 ? 's' : ''} not shown — ineligible based on your profile
+          </button>
+
+          {showFiltered && (
+            <div className="mt-3 space-y-2">
+              {filteredCalls.map(fc => (
+                <div
+                  key={fc.callId}
+                  className="rounded-xl border border-[var(--color-border)] bg-white/[0.02] px-4 py-3 flex items-start gap-3"
+                >
+                  <svg className="w-4 h-4 text-[var(--color-text-muted)] shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M18.364 18.364A9 9 0 005.636 5.636m12.728 12.728A9 9 0 015.636 5.636m12.728 12.728L5.636 5.636" />
+                  </svg>
+                  <div>
+                    <p className="text-xs font-semibold text-[var(--color-text-secondary)]">{fc.callTitle}</p>
+                    <p className="text-xs text-[var(--color-text-muted)] mt-0.5">{fc.reason}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
     </div>

@@ -20,8 +20,8 @@ grantMatchRouter.post('/', async (req: Request, res: Response) => {
   }
 
   try {
-    const results = await matchProfile(profile);
-    res.json({ results });
+    const { results, filteredCalls } = await matchProfile(profile);
+    res.json({ results, filteredCalls });
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : 'Matching failed';
     res.status(502).json({ error: message });

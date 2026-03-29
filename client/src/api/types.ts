@@ -105,6 +105,21 @@ export interface MatchResult {
   };
   strategicFitAnalysis: string;
   recommendedPivot?: string;
+  consortiumRequired: boolean;
+  minPartners?: number;
+  minCountries?: number;
+  fundingType: 'grant' | 'blended' | 'guarantee' | 'fellowship';
+  typicalSuccessRate?: string;
+  applicationEffortHours?: number;
+  timeToMoneyMonths?: number;
+  minTrl?: number;
+  maxTrl?: number;
+}
+
+export interface FilteredCall {
+  callTitle: string;
+  callId: string;
+  reason: string;
 }
 
 export interface FundingCall {
@@ -120,4 +135,12 @@ export interface FundingCall {
   smeOnly: boolean;
   isMultiStage: boolean;
   minTrl?: number;
+  maxTrl?: number;
+  consortiumRequired: boolean;
+  minPartners?: number;
+  minCountries?: number;
+  fundingType: 'grant' | 'blended' | 'guarantee' | 'fellowship';
+  typicalSuccessRate?: string;
+  applicationEffortHours?: number;
+  timeToMoneyMonths?: number;
 }

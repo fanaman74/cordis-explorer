@@ -1,5 +1,5 @@
 import Anthropic from '@anthropic-ai/sdk';
-import type { StartupProfile, MatchResult, FundingCall } from './types.js';
+import type { StartupProfile, MatchResult, FilteredCall, FundingCall } from './types.js';
 
 let _client: Anthropic | null = null;
 function getClient(): Anthropic {
@@ -16,25 +16,32 @@ const STAGE_TRL: Record<string, [number, number]> = {
   'Established': [8, 9],
 };
 
-export function runBooleanFilters(profile: StartupProfile, call: FundingCall): boolean {
-  // Country check is now handled by getCallsForProfile() which uses
-  // proper eligibility tags (EU+AC, EU+DEP, EUREKA, etc.)
-  // We skip re-checking country here since getCallsForProfile already filtered.
+export function runBooleanFilters(profile: StartupProfile, call: FundingCall): { eligible: boolean; reason?: string } {
+  // Country check is handled by getCallsForProfile() upstream.
 
-  // SME-only calls: check if org type qualifies
-  // Research Organisations and large entities don't qualify for SME-only calls
+  // SME-only calls: Research Organisations and NGOs don't qualify
   if (call.smeOnly) {
     const nonSmeTypes = new Set(['Research Organisation', 'Non-profit / NGO']);
-    if (nonSmeTypes.has(profile.organisationType)) return false;
+    if (nonSmeTypes.has(profile.organisationType)) {
+      return {
+        eligible: false,
+        reason: `This call is open to SMEs and startups only — ${profile.organisationType} organisations are not eligible.`,
+      };
+    }
   }
 
   // TRL check: if call has minTrl, startup stage must reach it
   if (call.minTrl !== undefined) {
     const [, stageMax] = STAGE_TRL[profile.stage] ?? [1, 9];
-    if (stageMax < call.minTrl) return false;
+    if (stageMax < call.minTrl) {
+      return {
+        eligible: false,
+        reason: `Your current stage (${profile.stage}) implies a maximum TRL of ${stageMax}, below the TRL ${call.minTrl} minimum required by this call.`,
+      };
+    }
   }
 
-  return true;
+  return { eligible: true };
 }
 
 export function serialiseProfileToMarkdown(profile: StartupProfile): string {
@@ -139,22 +146,40 @@ Return ONLY a valid JSON object with this exact structure, no other text:
     },
     strategicFitAnalysis: parsed.strategic_fit_analysis,
     recommendedPivot: parsed.recommended_pivot ?? undefined,
+    consortiumRequired: call.consortiumRequired,
+    minPartners: call.minPartners,
+    minCountries: call.minCountries,
+    fundingType: call.fundingType,
+    typicalSuccessRate: call.typicalSuccessRate,
+    applicationEffortHours: call.applicationEffortHours,
+    timeToMoneyMonths: call.timeToMoneyMonths,
+    minTrl: call.minTrl,
+    maxTrl: call.maxTrl,
   };
 }
 
-export async function matchProfile(profile: StartupProfile): Promise<MatchResult[]> {
+export async function matchProfile(profile: StartupProfile): Promise<{ results: MatchResult[]; filteredCalls: FilteredCall[] }> {
   const { getCallsForProfile } = await import('./eu-calls.js');
   const allCalls = getCallsForProfile(profile.countryOfTaxResidence);
 
-  // Stage 1: boolean hard filters
-  const eligible = allCalls.filter(call => runBooleanFilters(profile, call));
+  // Stage 1: boolean hard filters — collect eligible and filtered-out with reasons
+  const eligible: FundingCall[] = [];
+  const filteredCalls: FilteredCall[] = [];
+
+  for (const call of allCalls) {
+    const { eligible: pass, reason } = runBooleanFilters(profile, call);
+    if (pass) {
+      eligible.push(call);
+    } else {
+      filteredCalls.push({ callTitle: call.title, callId: call.identifier, reason: reason! });
+    }
+  }
 
   const count = profile.matchCount ?? 5;
 
   // Stage 2: Claude semantic scoring — score ALL eligible calls in parallel
-  // With 15 curated calls, scoring all ensures we never miss the best matches
-  const results = await Promise.all(eligible.map(call => scoreCallWithClaude(profile, call)));
+  const scored = await Promise.all(eligible.map(call => scoreCallWithClaude(profile, call)));
 
-  // Sort by score descending, return top `count`
-  return results.sort((a, b) => b.matchScore - a.matchScore).slice(0, count);
+  const results = scored.sort((a, b) => b.matchScore - a.matchScore).slice(0, count);
+  return { results, filteredCalls };
 }
