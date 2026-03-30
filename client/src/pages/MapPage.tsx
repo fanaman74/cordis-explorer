@@ -104,7 +104,7 @@ export default function MapPage() {
       {/* Map + sidebar layout */}
       <div className="flex flex-1 overflow-hidden">
         {/* Map */}
-        <div className="relative flex-1">
+        <div className="relative flex-1" style={{ minHeight: 0 }}>
           {isLoading && (
             <div className="absolute inset-0 z-10 flex flex-col items-center justify-center bg-[var(--color-bg-primary)]/80 backdrop-blur-sm">
               <div className="w-8 h-8 border-2 border-[var(--color-eu-blue-lighter)] border-t-transparent rounded-full animate-spin mb-3" />

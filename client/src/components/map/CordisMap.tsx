@@ -74,6 +74,9 @@ export default function CordisMap({ data, onCountryClick, selected }: Props) {
         maxZoom: 7,
       });
 
+      // Force Leaflet to recalculate dimensions after CSS layout resolves
+      setTimeout(() => map.invalidateSize(), 100);
+
       // Dark tile layer
       L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}{r}.png', {
         attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/">CARTO</a>',
@@ -169,6 +172,6 @@ export default function CordisMap({ data, onCountryClick, selected }: Props) {
   }, [data]);
 
   return (
-    <div ref={containerRef} className="w-full h-full" style={{ background: '#0f1117' }} />
+    <div ref={containerRef} style={{ position: 'absolute', inset: 0, background: '#0f1117' }} />
   );
 }
