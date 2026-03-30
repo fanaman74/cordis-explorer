@@ -1,177 +1,137 @@
 import { useEffect, useRef } from 'react';
 import type { CountryMapData } from '../../hooks/useMapData';
+import { COUNTRY_CENTROIDS } from './country-centroids';
 
-// Country name normalisation: CORDIS name → GeoJSON name
-const CORDIS_TO_GEOJSON: Record<string, string> = {
-  'Czech Republic': 'Czech Rep.',
-  'Czechia': 'Czech Rep.',
-  'Slovak Republic': 'Slovakia',
-  'North Macedonia': 'Macedonia',
-  'Bosnia and Herzegovina': 'Bosnia and Herz.',
-  'United Kingdom': 'United Kingdom',
-  'Netherlands': 'Netherlands',
-  'Moldova, Republic of': 'Moldova',
-  'Korea, Republic of': 'South Korea',
-  'Taiwan': 'Taiwan',
-  'Iran, Islamic Republic of': 'Iran',
-  'Russian Federation': 'Russia',
-  'United States': 'United States of America',
-  'United States of America': 'United States of America',
-  'Türkiye': 'Turkey',
-  'Turkey': 'Turkey',
-};
-
-function normalise(name: string): string {
-  return CORDIS_TO_GEOJSON[name] ?? name;
+function getColor(t: number): string {
+  // blue gradient: dark navy → vivid blue
+  const r = Math.round(30 + t * (96 - 30));
+  const g = Math.round(60 + t * (165 - 60));
+  const b = Math.round(120 + t * (250 - 120));
+  return `rgb(${r},${g},${b})`;
 }
 
-function getColor(count: number, max: number): string {
-  if (count === 0) return '#1e2235';
-  const t = Math.pow(count / max, 0.4); // power scale so mid-range is visible
-  // interpolate from #1a3a6b (low) → #3b82f6 (mid) → #60a5fa (high)
-  const r = Math.round(26 + t * (96 - 26));
-  const g = Math.round(58 + t * (165 - 58));
-  const b = Math.round(107 + t * (250 - 107));
-  return `rgb(${r},${g},${b})`;
+function getRadius(count: number, max: number): number {
+  const t = Math.pow(count / max, 0.45);
+  return 6 + t * 42;
 }
 
 interface Props {
   data: CountryMapData[];
   onCountryClick: (country: CountryMapData | null) => void;
   selected: string | null;
+  showBubbles: boolean;
 }
 
-export default function CordisMap({ data, onCountryClick, selected }: Props) {
+export default function CordisMap({ data, onCountryClick, selected, showBubbles }: Props) {
   const mapRef = useRef<any>(null);
-  const leafletRef = useRef<any>(null);
-  const geoLayerRef = useRef<any>(null);
+  const markersRef = useRef<any[]>([]);
   const containerRef = useRef<HTMLDivElement>(null);
+  const dataRef = useRef(data);
+  dataRef.current = data;
 
-  const countByName = new Map(data.map((d) => [normalise(d.country), d]));
   const max = Math.max(...data.map((d) => d.projectCount), 1);
 
   useEffect(() => {
     if (!containerRef.current || mapRef.current) return;
 
-    // Dynamic import to avoid SSR issues
     import('leaflet').then((L) => {
-      leafletRef.current = L;
-
-      // Fix default icon path issue in Vite
-      delete (L.Icon.Default.prototype as any)._getIconUrl;
-      L.Icon.Default.mergeOptions({
-        iconRetinaUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon-2x.png',
-        iconUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-icon.png',
-        shadowUrl: 'https://unpkg.com/leaflet@1.9.4/dist/images/marker-shadow.png',
-      });
-
       const map = L.map(containerRef.current!, {
-        center: [52, 15],
-        zoom: 3,
+        center: [48, 14],
+        zoom: 4,
         zoomControl: true,
         scrollWheelZoom: true,
         minZoom: 2,
-        maxZoom: 7,
+        maxZoom: 8,
       });
 
-      // Force Leaflet to recalculate dimensions after CSS layout resolves
-      setTimeout(() => map.invalidateSize(), 100);
-
-      // Dark tile layer
+      // Dark no-label tile layer (CartoDB)
       L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}{r}.png', {
-        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/">CARTO</a>',
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a> &copy; <a href="https://carto.com/">CARTO</a>',
         subdomains: 'abcd',
         maxZoom: 19,
       }).addTo(map);
 
       mapRef.current = map;
 
-      // Load GeoJSON
-      fetch('https://raw.githubusercontent.com/holtzy/D3-graph-gallery/master/DATA/world.geojson')
-        .then((r) => r.json())
-        .then((geojson) => {
-          if (!mapRef.current) return;
-
-          const layer = L.geoJSON(geojson, {
-            style: (feature) => {
-              const name = feature?.properties?.name ?? '';
-              const d = countByName.get(name);
-              const count = d?.projectCount ?? 0;
-              return {
-                fillColor: getColor(count, max),
-                fillOpacity: count > 0 ? 0.85 : 0.3,
-                color: '#2d3748',
-                weight: 0.8,
-                opacity: 1,
-              };
-            },
-            onEachFeature: (feature, layer) => {
-              const name = feature?.properties?.name ?? '';
-              const d = countByName.get(name);
-              const count = d?.projectCount ?? 0;
-
-              layer.on({
-                mouseover: (e: any) => {
-                  e.target.setStyle({ weight: 2, color: '#60a5fa', fillOpacity: count > 0 ? 0.95 : 0.5 });
-                },
-                mouseout: (e: any) => {
-                  layer.setStyle({
-                    fillColor: getColor(count, max),
-                    fillOpacity: count > 0 ? 0.85 : 0.3,
-                    color: '#2d3748',
-                    weight: 0.8,
-                  });
-                },
-                click: () => {
-                  if (d) {
-                    onCountryClick(d);
-                  } else {
-                    onCountryClick(null);
-                  }
-                },
-              });
-
-              if (count > 0) {
-                layer.bindTooltip(
-                  `<div style="font-family:system-ui;font-size:13px;font-weight:600;color:#f1f5f9">${name}</div><div style="font-size:12px;color:#94a3b8">${count.toLocaleString()} projects · ${d?.orgCount.toLocaleString()} orgs</div>`,
-                  { sticky: true, className: 'cordis-map-tooltip' }
-                );
-              }
-            },
-          }).addTo(mapRef.current);
-
-          geoLayerRef.current = layer;
-        });
+      // Allow layout to settle before sizing
+      requestAnimationFrame(() => {
+        map.invalidateSize();
+        renderMarkers(L, map, showBubbles);
+      });
     });
 
     return () => {
       if (mapRef.current) {
         mapRef.current.remove();
         mapRef.current = null;
-        geoLayerRef.current = null;
+        markersRef.current = [];
       }
     };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Re-style when data changes
-  useEffect(() => {
-    if (!geoLayerRef.current) return;
-    geoLayerRef.current.setStyle((feature: any) => {
-      const name = feature?.properties?.name ?? '';
-      const d = countByName.get(name);
-      const count = d?.projectCount ?? 0;
-      return {
-        fillColor: getColor(count, max),
-        fillOpacity: count > 0 ? 0.85 : 0.3,
-        color: '#2d3748',
-        weight: 0.8,
-      };
+  function renderMarkers(L: any, map: any, visible: boolean) {
+    // Clear old markers
+    markersRef.current.forEach((m) => m.remove());
+    markersRef.current = [];
+
+    if (!visible) return;
+
+    const currentData = dataRef.current;
+    const currentMax = Math.max(...currentData.map((d) => d.projectCount), 1);
+
+    currentData.forEach((d) => {
+      const coords = COUNTRY_CENTROIDS[d.country];
+      if (!coords) return;
+
+      const t = Math.pow(d.projectCount / currentMax, 0.45);
+      const radius = getRadius(d.projectCount, currentMax);
+      const color = getColor(t);
+
+      const circle = L.circleMarker(coords, {
+        radius,
+        fillColor: color,
+        fillOpacity: 0.75,
+        color: 'rgba(255,255,255,0.25)',
+        weight: 1.5,
+      });
+
+      circle.bindTooltip(
+        `<div style="font-family:system-ui;font-size:13px;font-weight:600;color:#f1f5f9">${d.country}</div>
+         <div style="font-size:12px;color:#94a3b8">${d.projectCount.toLocaleString()} projects · ${d.orgCount.toLocaleString()} orgs</div>`,
+        { sticky: true, className: 'cordis-map-tooltip' }
+      );
+
+      circle.on('click', () => onCountryClick(d));
+      circle.addTo(map);
+      markersRef.current.push(circle);
     });
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [data]);
+  }
+
+  // Re-render markers when data or bubble visibility changes
+  useEffect(() => {
+    if (!mapRef.current) return;
+    import('leaflet').then((L) => renderMarkers(L, mapRef.current, showBubbles));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [data, showBubbles]);
 
   return (
-    <div ref={containerRef} style={{ position: 'absolute', inset: 0, background: '#0f1117' }} />
+    <>
+      <div ref={containerRef} style={{ position: 'absolute', inset: 0, background: '#0d1117' }} />
+      <style>{`
+        .leaflet-container { background: #0d1117 !important; }
+        .cordis-map-tooltip {
+          background: rgba(13,17,23,0.97) !important;
+          border: 1px solid rgba(59,130,246,0.35) !important;
+          border-radius: 8px !important;
+          padding: 6px 10px !important;
+          box-shadow: 0 4px 20px rgba(0,0,0,0.6) !important;
+        }
+        .leaflet-control-attribution { background: rgba(13,17,23,0.8) !important; color: #475569 !important; font-size: 9px !important; }
+        .leaflet-control-attribution a { color: #64748b !important; }
+        .leaflet-bar a { background: rgba(20,24,33,0.97) !important; color: #94a3b8 !important; border-color: rgba(255,255,255,0.08) !important; }
+        .leaflet-bar a:hover { background: rgba(59,130,246,0.2) !important; color: #f1f5f9 !important; }
+      `}</style>
+    </>
   );
 }

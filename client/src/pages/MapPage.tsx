@@ -71,6 +71,7 @@ function CountryPanel({ country, onClose }: { country: CountryMapData; onClose: 
 export default function MapPage() {
   const [programme, setProgramme] = useState<string | undefined>(undefined);
   const [selected, setSelected] = useState<CountryMapData | null>(null);
+  const [showBubbles, setShowBubbles] = useState(false);
   const { data = [], isLoading, error } = useMapData(programme);
 
   const max = Math.max(...data.map((d) => d.projectCount), 1);
@@ -98,6 +99,21 @@ export default function MapPage() {
               {p.label}
             </button>
           ))}
+          <div className="w-px h-4 bg-[var(--color-border)] mx-1" />
+          <button
+            onClick={() => setShowBubbles(b => !b)}
+            className={`flex items-center gap-1.5 text-xs px-3 py-1.5 rounded-lg border transition-colors ${
+              showBubbles
+                ? 'bg-blue-500/15 border-blue-500/40 text-blue-400'
+                : 'border-[var(--color-border)] text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] hover:border-[var(--color-border-light)]'
+            }`}
+          >
+            <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <circle cx="12" cy="12" r="9" strokeWidth={1.8} />
+              <circle cx="12" cy="12" r="4" strokeWidth={1.8} />
+            </svg>
+            Bubbles
+          </button>
         </div>
       </div>
 
@@ -122,6 +138,7 @@ export default function MapPage() {
                 data={data}
                 selected={selected?.country ?? null}
                 onCountryClick={setSelected}
+                showBubbles={showBubbles}
               />
             )}
           </Suspense>
