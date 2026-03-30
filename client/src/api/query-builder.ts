@@ -257,6 +257,41 @@ LIMIT 200
   `.trim();
 }
 
+export function buildPartnerSearchQuery(keywords: string[], country?: string): string {
+  const keywordFilters = keywords
+    .map(k => `CONTAINS(LCASE(STR(?title)), '${escapeString(k.toLowerCase())}')`)
+    .join(' || ');
+
+  const countryClause = country
+    ? `?org eurio:hasSite ?_cs . ?_cs eurio:hasGeographicalLocation ?_cc . ?_cc a eurio:Country . ?_cc eurio:name '${escapeString(country)}' .`
+    : '';
+
+  return `
+PREFIX eurio: <http://data.europa.eu/s66#>
+
+SELECT ?orgName ?countryName (COUNT(DISTINCT ?project) AS ?projectCount)
+       (GROUP_CONCAT(DISTINCT ?title; SEPARATOR="||") AS ?projectTitles)
+WHERE {
+  ?project a eurio:Project .
+  ?project eurio:title ?title .
+  FILTER(${keywordFilters})
+  ?project eurio:hasInvolvedParty ?role .
+  ?role eurio:isRoleOf ?org .
+  ?org eurio:legalName ?orgName .
+  ${countryClause}
+  OPTIONAL {
+    ?org eurio:hasSite ?site .
+    ?site eurio:hasGeographicalLocation ?country .
+    ?country a eurio:Country .
+    ?country eurio:name ?countryName .
+  }
+}
+GROUP BY ?orgName ?countryName
+ORDER BY DESC(?projectCount)
+LIMIT 80
+  `.trim();
+}
+
 export function buildMapDataQuery(programme?: string): string {
   let progFilter = '';
   if (programme === 'HE') {

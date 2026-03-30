@@ -69,6 +69,22 @@ const TOOLS = [
     text: '#5eead4',
   },
   {
+    requiresAuth: true,
+    to: '/partner-match',
+    icon: (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.6} className="w-8 h-8">
+        <path strokeLinecap="round" strokeLinejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z" />
+      </svg>
+    ),
+    label: 'Partner Match',
+    description: 'Find ideal EU consortium partners for your research project using AI.',
+    color: '#a855f7',
+    glow: 'rgba(168,85,247,0.35)',
+    bg: 'rgba(126,34,206,0.08)',
+    border: 'rgba(126,34,206,0.25)',
+    text: '#c084fc',
+  },
+  {
     to: '/map',
     icon: (
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.6} className="w-8 h-8">
