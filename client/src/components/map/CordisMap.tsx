@@ -2,118 +2,157 @@ import { useEffect, useRef } from 'react';
 import type { CountryMapData } from '../../hooks/useMapData';
 import { COUNTRY_CENTROIDS } from './country-centroids';
 
-function getColor(t: number): string {
-  // blue gradient: dark navy → vivid blue
-  const r = Math.round(30 + t * (96 - 30));
-  const g = Math.round(60 + t * (165 - 60));
-  const b = Math.round(120 + t * (250 - 120));
-  return `rgb(${r},${g},${b})`;
-}
+// CORDIS country name → GeoJSON name (where they differ)
+const NORMALISE: Record<string, string> = {
+  'Czech Republic': 'Czech Rep.',
+  'Czechia': 'Czech Rep.',
+  'Slovak Republic': 'Slovakia',
+  'North Macedonia': 'Macedonia',
+  'Bosnia and Herzegovina': 'Bosnia and Herz.',
+  'Moldova, Republic of': 'Moldova',
+  'Korea, Republic of': 'South Korea',
+  'Iran, Islamic Republic of': 'Iran',
+  'Russian Federation': 'Russia',
+  'United States': 'United States of America',
+  'Türkiye': 'Turkey',
+};
 
-function getRadius(count: number, max: number): number {
-  const t = Math.pow(count / max, 0.45);
-  return 6 + t * 42;
+function norm(name: string) { return NORMALISE[name] ?? name; }
+
+function getColor(t: number): string {
+  const r = Math.round(26 + t * (96 - 26));
+  const g = Math.round(58 + t * (165 - 58));
+  const b = Math.round(107 + t * (250 - 107));
+  return `rgb(${r},${g},${b})`;
 }
 
 interface Props {
   data: CountryMapData[];
-  onCountryClick: (country: CountryMapData | null) => void;
+  onCountryClick: (c: CountryMapData | null) => void;
   selected: string | null;
   showBubbles: boolean;
 }
 
+const GEOJSON_URL = 'https://raw.githubusercontent.com/holtzy/D3-graph-gallery/master/DATA/world.geojson';
+
 export default function CordisMap({ data, onCountryClick, selected, showBubbles }: Props) {
-  const mapRef = useRef<any>(null);
-  const markersRef = useRef<any[]>([]);
   const containerRef = useRef<HTMLDivElement>(null);
+  const mapRef = useRef<any>(null);
+  const geoLayerRef = useRef<any>(null);
+  const bubblesRef = useRef<any[]>([]);
   const dataRef = useRef(data);
   dataRef.current = data;
 
-  const max = Math.max(...data.map((d) => d.projectCount), 1);
+  const max = Math.max(...data.map(d => d.projectCount), 1);
+
+  function styleFeature(feature: any) {
+    const name = feature?.properties?.name ?? '';
+    const d = dataRef.current.find(x => norm(x.country) === name);
+    const count = d?.projectCount ?? 0;
+    const t = count > 0 ? Math.pow(count / Math.max(...dataRef.current.map(x => x.projectCount), 1), 0.4) : 0;
+    return {
+      fillColor: count > 0 ? getColor(t) : '#1a1f2e',
+      fillOpacity: count > 0 ? 0.82 : 0.4,
+      color: '#2d3a52',
+      weight: 0.8,
+    };
+  }
+
+  function renderBubbles(L: any, map: any) {
+    bubblesRef.current.forEach(m => m.remove());
+    bubblesRef.current = [];
+    if (!showBubbles) return;
+
+    const currentMax = Math.max(...dataRef.current.map(d => d.projectCount), 1);
+
+    dataRef.current.forEach(d => {
+      const coords = COUNTRY_CENTROIDS[d.country];
+      if (!coords) return;
+      const t = Math.pow(d.projectCount / currentMax, 0.45);
+      const circle = L.circleMarker(coords, {
+        radius: 5 + t * 35,
+        fillColor: getColor(t),
+        fillOpacity: 0.7,
+        color: 'rgba(255,255,255,0.2)',
+        weight: 1.2,
+      });
+      circle.on('click', () => onCountryClick(d));
+      circle.bindTooltip(
+        `<div style="font-weight:600;color:#f1f5f9">${d.country}</div><div style="color:#94a3b8">${d.projectCount.toLocaleString()} projects</div>`,
+        { sticky: true, className: 'cordis-map-tooltip' }
+      );
+      circle.addTo(map);
+      bubblesRef.current.push(circle);
+    });
+  }
 
   useEffect(() => {
     if (!containerRef.current || mapRef.current) return;
 
-    import('leaflet').then((L) => {
+    import('leaflet').then(L => {
       const map = L.map(containerRef.current!, {
-        center: [48, 14],
-        zoom: 4,
-        zoomControl: true,
-        scrollWheelZoom: true,
-        minZoom: 2,
-        maxZoom: 8,
+        center: [50, 12], zoom: 4,
+        zoomControl: true, scrollWheelZoom: true,
+        minZoom: 2, maxZoom: 8,
       });
 
-      // Dark no-label tile layer (CartoDB)
       L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}{r}.png', {
-        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a> &copy; <a href="https://carto.com/">CARTO</a>',
-        subdomains: 'abcd',
-        maxZoom: 19,
+        attribution: '&copy; OSM &copy; CARTO',
+        subdomains: 'abcd', maxZoom: 19,
       }).addTo(map);
 
       mapRef.current = map;
 
-      // Allow layout to settle before sizing
-      requestAnimationFrame(() => {
-        map.invalidateSize();
-        renderMarkers(L, map, showBubbles);
-      });
+      fetch(GEOJSON_URL)
+        .then(r => r.json())
+        .then(geojson => {
+          if (!mapRef.current) return;
+          const layer = L.geoJSON(geojson, {
+            style: styleFeature,
+            onEachFeature: (feature: any, layer: any) => {
+              const name = feature?.properties?.name ?? '';
+              const d = dataRef.current.find(x => norm(x.country) === name);
+              if (d) {
+                layer.bindTooltip(
+                  `<div style="font-weight:600;color:#f1f5f9;font-size:13px">${d.country}</div><div style="color:#94a3b8;font-size:12px">${d.projectCount.toLocaleString()} projects · ${d.orgCount.toLocaleString()} orgs</div>`,
+                  { sticky: true, className: 'cordis-map-tooltip' }
+                );
+              }
+              layer.on({
+                mouseover: (e: any) => e.target.setStyle({ weight: 2, color: '#60a5fa', fillOpacity: d ? 0.95 : 0.55 }),
+                mouseout: () => layer.setStyle(styleFeature(feature)),
+                click: () => onCountryClick(d ?? null),
+              });
+            },
+          }).addTo(map);
+          geoLayerRef.current = layer;
+        })
+        .catch(() => console.warn('GeoJSON fetch failed, map will show without country shapes'));
+
+      requestAnimationFrame(() => map.invalidateSize());
     });
 
     return () => {
-      if (mapRef.current) {
-        mapRef.current.remove();
-        mapRef.current = null;
-        markersRef.current = [];
-      }
+      mapRef.current?.remove();
+      mapRef.current = null;
+      geoLayerRef.current = null;
+      bubblesRef.current = [];
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  function renderMarkers(L: any, map: any, visible: boolean) {
-    // Clear old markers
-    markersRef.current.forEach((m) => m.remove());
-    markersRef.current = [];
+  // Restyle choropleth when data changes
+  useEffect(() => {
+    geoLayerRef.current?.setStyle(styleFeature);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [data]);
 
-    if (!visible) return;
-
-    const currentData = dataRef.current;
-    const currentMax = Math.max(...currentData.map((d) => d.projectCount), 1);
-
-    currentData.forEach((d) => {
-      const coords = COUNTRY_CENTROIDS[d.country];
-      if (!coords) return;
-
-      const t = Math.pow(d.projectCount / currentMax, 0.45);
-      const radius = getRadius(d.projectCount, currentMax);
-      const color = getColor(t);
-
-      const circle = L.circleMarker(coords, {
-        radius,
-        fillColor: color,
-        fillOpacity: 0.75,
-        color: 'rgba(255,255,255,0.25)',
-        weight: 1.5,
-      });
-
-      circle.bindTooltip(
-        `<div style="font-family:system-ui;font-size:13px;font-weight:600;color:#f1f5f9">${d.country}</div>
-         <div style="font-size:12px;color:#94a3b8">${d.projectCount.toLocaleString()} projects · ${d.orgCount.toLocaleString()} orgs</div>`,
-        { sticky: true, className: 'cordis-map-tooltip' }
-      );
-
-      circle.on('click', () => onCountryClick(d));
-      circle.addTo(map);
-      markersRef.current.push(circle);
-    });
-  }
-
-  // Re-render markers when data or bubble visibility changes
+  // Re-render bubbles when toggle or data changes
   useEffect(() => {
     if (!mapRef.current) return;
-    import('leaflet').then((L) => renderMarkers(L, mapRef.current, showBubbles));
+    import('leaflet').then(L => renderBubbles(L, mapRef.current));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [data, showBubbles]);
+  }, [showBubbles, data]);
 
   return (
     <>
@@ -126,6 +165,7 @@ export default function CordisMap({ data, onCountryClick, selected, showBubbles 
           border-radius: 8px !important;
           padding: 6px 10px !important;
           box-shadow: 0 4px 20px rgba(0,0,0,0.6) !important;
+          font-family: system-ui !important;
         }
         .leaflet-control-attribution { background: rgba(13,17,23,0.8) !important; color: #475569 !important; font-size: 9px !important; }
         .leaflet-control-attribution a { color: #64748b !important; }
