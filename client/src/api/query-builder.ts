@@ -257,6 +257,35 @@ LIMIT 200
   `.trim();
 }
 
+export function buildMapDataQuery(programme?: string): string {
+  let progFilter = '';
+  if (programme === 'HE') {
+    progFilter = `?project eurio:startDate ?_sd . FILTER(?_sd >= "2021-01-01"^^xsd:date)`;
+  } else if (programme === 'H2020') {
+    progFilter = `?project eurio:startDate ?_sd . FILTER(?_sd >= "2014-01-01"^^xsd:date && ?_sd < "2021-01-01"^^xsd:date)`;
+  } else if (programme === 'FP7') {
+    progFilter = `?project eurio:startDate ?_sd . FILTER(?_sd < "2014-01-01"^^xsd:date)`;
+  }
+  return `
+PREFIX eurio: <http://data.europa.eu/s66#>
+PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+
+SELECT ?countryName (COUNT(DISTINCT ?project) AS ?projectCount) (COUNT(DISTINCT ?org) AS ?orgCount)
+WHERE {
+  ?project a eurio:Project .
+  ${progFilter}
+  ?project eurio:hasInvolvedParty ?role .
+  ?role eurio:isRoleOf ?org .
+  ?org eurio:hasSite ?site .
+  ?site eurio:hasGeographicalLocation ?country .
+  ?country a eurio:Country .
+  ?country eurio:name ?countryName .
+}
+GROUP BY ?countryName
+ORDER BY DESC(?projectCount)
+  `.trim();
+}
+
 export function buildCountQuery(filters: SearchFilters): string {
   const searchQuery = buildProjectSearchQuery({ ...filters, page: 1, pageSize: 1 });
   // Wrap the search query as a subquery to count results

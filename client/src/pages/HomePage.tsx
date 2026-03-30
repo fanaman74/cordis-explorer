@@ -68,6 +68,21 @@ const TOOLS = [
     border: 'rgba(13,148,136,0.25)',
     text: '#5eead4',
   },
+  {
+    to: '/map',
+    icon: (
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.6} className="w-8 h-8">
+        <path strokeLinecap="round" strokeLinejoin="round" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
+      </svg>
+    ),
+    label: 'Geographic Map',
+    description: 'See EU project distribution across countries on an interactive map.',
+    color: '#f97316',
+    glow: 'rgba(249,115,22,0.35)',
+    bg: 'rgba(234,88,12,0.08)',
+    border: 'rgba(234,88,12,0.25)',
+    text: '#fb923c',
+  },
 ];
 
 export default function HomePage() {

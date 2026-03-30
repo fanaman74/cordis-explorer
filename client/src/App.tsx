@@ -8,6 +8,7 @@ import GrantMatchPage from './pages/GrantMatchPage';
 import ProfileMatchPage from './pages/ProfileMatchPage';
 import GrantSearchPage from './pages/GrantSearchPage';
 import AdminPage from './pages/AdminPage';
+import MapPage from './pages/MapPage';
 import AuthModal from './components/auth/AuthModal';
 import { useAuth } from './contexts/AuthContext';
 
@@ -26,6 +27,7 @@ export default function App() {
           <Route path="/profile-match" element={<ProfileMatchPage />} />
           <Route path="/grant-search" element={<GrantSearchPage />} />
           <Route path="/admin" element={<AdminPage />} />
+          <Route path="/map" element={<MapPage />} />
         </Routes>
       </main>
       <Footer />
