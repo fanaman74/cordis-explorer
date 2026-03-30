@@ -22,6 +22,7 @@ import helmet from 'helmet';
 import morgan from 'morgan';
 import sparqlProxy from './sparql-proxy.js';
 import { grantMatchRouter } from './grant-match-route.js';
+import { adminRouter } from './admin-route.js';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -33,6 +34,7 @@ app.use(express.json());
 
 app.use(sparqlProxy);
 app.use('/api/grant-match', grantMatchRouter);
+app.use('/api/admin', adminRouter);
 
 app.get('/api/health', (_req, res) => {
   res.json({ status: 'ok' });

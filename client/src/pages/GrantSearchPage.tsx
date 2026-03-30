@@ -1,4 +1,5 @@
 import GrantSearchForm from '../components/grant-search/GrantSearchForm';
+import AuthGate from '../components/auth/AuthGate';
 
 export default function GrantSearchPage() {
   return (
@@ -16,7 +17,12 @@ export default function GrantSearchPage() {
         </p>
       </div>
 
-      <GrantSearchForm />
+      <AuthGate
+        title="Sign in to search for grants"
+        description="Create a free account to use AI-powered grant search. It takes less than a minute."
+      >
+        <GrantSearchForm />
+      </AuthGate>
     </div>
   );
 }

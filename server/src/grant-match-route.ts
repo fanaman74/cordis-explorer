@@ -2,10 +2,11 @@ import { Router } from 'express';
 import type { Request, Response } from 'express';
 import { matchProfile } from './grant-matcher.js';
 import type { StartupProfile } from './types.js';
+import { requireAuth } from './auth-middleware.js';
 
 export const grantMatchRouter = Router();
 
-grantMatchRouter.post('/', async (req: Request, res: Response) => {
+grantMatchRouter.post('/', requireAuth, async (req: Request, res: Response) => {
   const profile = req.body as StartupProfile;
 
   // Basic validation

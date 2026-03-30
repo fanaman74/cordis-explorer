@@ -1,5 +1,6 @@
 import { useMutation } from '@tanstack/react-query';
 import type { StartupProfile, MatchResult, FilteredCall } from '../api/types';
+import { supabase } from '../lib/supabase';
 
 export interface GrantMatchResponse {
   results: MatchResult[];
@@ -7,9 +8,15 @@ export interface GrantMatchResponse {
 }
 
 async function postGrantMatch(profile: StartupProfile): Promise<GrantMatchResponse> {
+  const { data: { session } } = await supabase.auth.getSession();
+  const token = session?.access_token;
+
   const response = await fetch('/api/grant-match', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+    },
     body: JSON.stringify(profile),
   });
   if (!response.ok) {

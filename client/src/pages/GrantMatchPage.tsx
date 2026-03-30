@@ -1,4 +1,5 @@
 import ProfileWizard from '../components/grant-match/ProfileWizard';
+import AuthGate from '../components/auth/AuthGate';
 
 export default function GrantMatchPage() {
   return (
@@ -16,7 +17,12 @@ export default function GrantMatchPage() {
         </p>
       </div>
 
-      <ProfileWizard />
+      <AuthGate
+        title="Sign in to run your grant match"
+        description="Create a free account to use AI-powered grant matching. It takes less than a minute."
+      >
+        <ProfileWizard />
+      </AuthGate>
     </div>
   );
 }

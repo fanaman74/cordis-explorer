@@ -7,8 +7,13 @@ import ProjectPage from './pages/ProjectPage';
 import GrantMatchPage from './pages/GrantMatchPage';
 import ProfileMatchPage from './pages/ProfileMatchPage';
 import GrantSearchPage from './pages/GrantSearchPage';
+import AdminPage from './pages/AdminPage';
+import AuthModal from './components/auth/AuthModal';
+import { useAuth } from './contexts/AuthContext';
 
 export default function App() {
+  const { showAuthModal } = useAuth();
+
   return (
     <div className="min-h-screen flex flex-col">
       <Header />
@@ -20,9 +25,11 @@ export default function App() {
           <Route path="/grant-match" element={<GrantMatchPage />} />
           <Route path="/profile-match" element={<ProfileMatchPage />} />
           <Route path="/grant-search" element={<GrantSearchPage />} />
+          <Route path="/admin" element={<AdminPage />} />
         </Routes>
       </main>
       <Footer />
+      {showAuthModal && <AuthModal />}
     </div>
   );
 }

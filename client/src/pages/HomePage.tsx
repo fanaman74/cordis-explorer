@@ -1,7 +1,9 @@
 import { Link } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
 
 const TOOLS = [
   {
+    requiresAuth: true,
     to: '/grant-search',
     icon: (
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.6} className="w-8 h-8">
@@ -18,6 +20,7 @@ const TOOLS = [
     text: '#7eb3ff',
   },
   {
+    requiresAuth: true,
     to: '/profile-match',
     icon: (
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.6} className="w-8 h-8">
@@ -33,6 +36,7 @@ const TOOLS = [
     text: '#c4b5fd',
   },
   {
+    requiresAuth: true,
     to: '/grant-match',
     icon: (
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.6} className="w-8 h-8">
@@ -67,6 +71,9 @@ const TOOLS = [
 ];
 
 export default function HomePage() {
+  const { user, openAuthModal } = useAuth();
+  const visibleTools = TOOLS.filter(t => !t.requiresAuth || user);
+
   return (
     <div className="min-h-screen flex flex-col">
       {/* Hero */}
@@ -107,9 +114,23 @@ export default function HomePage() {
           Search 50,000+ EU-funded projects and find grants matched to your organisation — powered by Claude AI.
         </p>
 
+        {/* Sign-in prompt when logged out */}
+        {!user && (
+          <div className="relative z-10 mb-6 flex items-center gap-3 rounded-xl px-4 py-3 text-sm"
+            style={{ background: 'rgba(59,130,246,0.08)', border: '1px solid rgba(59,130,246,0.2)' }}>
+            <svg className="w-4 h-4 shrink-0" fill="none" stroke="#7eb3ff" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+            </svg>
+            <span style={{ color: '#7eb3ff' }}>
+              <button onClick={openAuthModal} className="font-semibold underline underline-offset-2 cursor-pointer bg-transparent border-none p-0">Sign in</button>
+              {' '}to unlock AI-powered grant matching tools
+            </span>
+          </div>
+        )}
+
         {/* 2×2 card grid */}
-        <div className="relative z-10 grid grid-cols-2 gap-5 w-full max-w-3xl">
-          {TOOLS.map((tool) => (
+        <div className={`relative z-10 grid gap-5 w-full max-w-3xl ${visibleTools.length === 1 ? 'grid-cols-1 max-w-xs' : 'grid-cols-2'}`}>
+          {visibleTools.map((tool) => (
             <Link
               key={tool.to}
               to={tool.to}
