@@ -27,7 +27,31 @@ import { adminRouter } from './admin-route.js';
 const app = express();
 const PORT = process.env.PORT || 3001;
 
-app.use(helmet());
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc: ["'self'"],
+      scriptSrc: ["'self'", "'unsafe-inline'"],
+      styleSrc: ["'self'", "'unsafe-inline'"],
+      imgSrc: [
+        "'self'",
+        "data:",
+        "blob:",
+        "https://*.basemaps.cartocdn.com",
+        "https://*.tile.openstreetmap.org",
+        "https://unpkg.com",
+      ],
+      connectSrc: [
+        "'self'",
+        "https://*.supabase.co",
+        "https://cordis.europa.eu",
+        "https://raw.githubusercontent.com",
+      ],
+      fontSrc: ["'self'", "data:"],
+      workerSrc: ["'self'", "blob:"],
+    },
+  },
+}));
 app.use(cors());
 app.use(morgan('dev'));
 app.use(express.json());
