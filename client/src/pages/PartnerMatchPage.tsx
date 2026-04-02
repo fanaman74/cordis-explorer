@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { usePartnerMatch } from '../hooks/usePartnerMatch';
 import type { PartnerResult } from '../hooks/usePartnerMatch';
 import { useCountries } from '../hooks/useCountries';
@@ -98,6 +98,11 @@ function PartnerCard({ result }: { result: PartnerResult }) {
 }
 
 export default function PartnerMatchPage() {
+  useEffect(() => {
+    document.title = 'Find EU Research Partners — CORDIS Explorer';
+    return () => { document.title = 'CORDIS Explorer — Search EU-Funded Research Projects'; };
+  }, []);
+
   const [description, setDescription] = useState('');
   const [country, setCountry] = useState('');
   const [maxResults, setMaxResults] = useState(10);

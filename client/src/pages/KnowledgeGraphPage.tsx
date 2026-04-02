@@ -6,6 +6,8 @@ import {
   buildOrgSearchForGraphQuery,
   buildOrgProjectsForGraphQuery,
   buildCountryOrgsForGraphQuery,
+  buildProjectSearchForGraphQuery,
+  buildProjectParticipantsForGraphQuery,
 } from '../api/query-builder';
 import { executeSparql } from '../api/sparql-client';
 import { useCountries } from '../hooks/useCountries';
@@ -106,6 +108,11 @@ function HeroGraphAnimation() {
 }
 
 export default function KnowledgeGraphPage() {
+  useEffect(() => {
+    document.title = 'EU Research Knowledge Graph — CORDIS Explorer';
+    return () => { document.title = 'CORDIS Explorer — Search EU-Funded Research Projects'; };
+  }, []);
+
   const [nodes, setNodes] = useState<GraphNode[]>([]);
   const [edges, setEdges] = useState<GraphEdge[]>([]);
   const [selected, setSelected] = useState<GraphNode | null>(null);
@@ -113,9 +120,10 @@ export default function KnowledgeGraphPage() {
   const [sidebarProjects, setSidebarProjects] = useState<SidebarProject[]>([]);
   const [sidebarLoading, setSidebarLoading] = useState(false);
 
-  const [mode, setMode] = useState<'org' | 'country'>('org');
+  const [mode, setMode] = useState<'org' | 'project' | 'country'>('org');
   const [searchTerm, setSearchTerm] = useState('');
   const [searchResults, setSearchResults] = useState<{ name: string; count: number }[]>([]);
+  const [projectResults, setProjectResults] = useState<{ title: string; acronym?: string; projectId: string }[]>([]);
   const [searchLoading, setSearchLoading] = useState(false);
   const [expandLoading, setExpandLoading] = useState(false);
   const [showDropdown, setShowDropdown] = useState(false);
@@ -139,6 +147,27 @@ export default function KnowledgeGraphPage() {
         setSearchResults(results);
         setShowDropdown(results.length > 0);
       } catch { setSearchResults([]); }
+      finally { setSearchLoading(false); }
+    }, 420);
+    return () => clearTimeout(debounceRef.current);
+  }, [searchTerm, mode]);
+
+  useEffect(() => {
+    if (mode !== 'project') return;
+    if (searchTerm.trim().length < 3) { setProjectResults([]); setShowDropdown(false); return; }
+    clearTimeout(debounceRef.current);
+    setSearchLoading(true);
+    debounceRef.current = setTimeout(async () => {
+      try {
+        const data = await executeSparql(buildProjectSearchForGraphQuery(searchTerm.trim()));
+        const results = (data.results.bindings as any[]).map(b => ({
+          title: getVal(b, 'projectTitle') ?? '',
+          acronym: getVal(b, 'projectAcronym'),
+          projectId: getVal(b, 'projectId') ?? '',
+        })).filter(r => r.title && r.projectId);
+        setProjectResults(results);
+        setShowDropdown(results.length > 0);
+      } catch { setProjectResults([]); }
       finally { setSearchLoading(false); }
     }, 420);
     return () => clearTimeout(debounceRef.current);
@@ -229,6 +258,35 @@ export default function KnowledgeGraphPage() {
       setNodes(newNodes);
       setEdges(newEdges);
       setSelected({ id: countryId, label: countryName, type: 'country', expanded: true });
+    } finally { setExpandLoading(false); }
+  }
+
+  async function loadProject(projectId: string, projectTitle: string, projectAcronym?: string) {
+    setShowDropdown(false);
+    setSearchTerm(projectAcronym ?? (projectTitle.length > 30 ? projectTitle.slice(0, 28) + '…' : projectTitle));
+    setExpandLoading(true);
+    const projNodeId = `project:${projectId}`;
+    try {
+      const data = await executeSparql(buildProjectParticipantsForGraphQuery(projectId));
+      const bindings = data.results.bindings as any[];
+      const lbl = projectAcronym ?? (projectTitle.length > 30 ? projectTitle.slice(0, 28) + '…' : projectTitle);
+      const newNodes: GraphNode[] = [{ id: projNodeId, label: lbl, type: 'project', expanded: true, meta: { projectId, title: projectTitle, acronym: projectAcronym } }];
+      const newEdges: GraphEdge[] = [];
+      const seen = new Set<string>();
+      for (const b of bindings) {
+        const orgName = getVal(b, 'orgName') ?? '';
+        const countryName = getVal(b, 'countryName');
+        if (!orgName) continue;
+        const nodeId = `org:${orgName}`;
+        if (seen.has(nodeId)) continue;
+        seen.add(nodeId);
+        newNodes.push({ id: nodeId, label: orgName, type: 'org', expanded: false, meta: { country: countryName } });
+        newEdges.push({ source: projNodeId, target: nodeId });
+      }
+      setNodes(newNodes);
+      setEdges(newEdges);
+      setSelected({ id: projNodeId, label: lbl, type: 'project', expanded: true, meta: { projectId, title: projectTitle, acronym: projectAcronym } });
+      setSidebarProjects([]);
     } finally { setExpandLoading(false); }
   }
 
@@ -325,10 +383,10 @@ export default function KnowledgeGraphPage() {
               className="flex gap-1 rounded-xl p-1 mb-4"
               style={{ background: '#f2f2f2' }}
             >
-              {(['org', 'country'] as const).map(m => (
+              {(['org', 'project', 'country'] as const).map(m => (
                 <button
                   key={m}
-                  onClick={() => { setMode(m); setSearchTerm(''); setSearchResults([]); setShowDropdown(false); }}
+                  onClick={() => { setMode(m); setSearchTerm(''); setSearchResults([]); setProjectResults([]); setShowDropdown(false); }}
                   className="flex-1 py-2 rounded-lg text-sm font-semibold cursor-pointer border-0 transition-all duration-200"
                   style={
                     mode === m
@@ -336,13 +394,13 @@ export default function KnowledgeGraphPage() {
                       : { background: 'transparent', color: '#6a6a6a' }
                   }
                 >
-                  {m === 'org' ? 'Organisation' : 'Country'}
+                  {m === 'org' ? 'Organisation' : m === 'project' ? 'Project' : 'Country'}
                 </button>
               ))}
             </div>
 
             {/* Input */}
-            {mode === 'org' ? (
+            {(mode === 'org' || mode === 'project') ? (
               <div className="relative" ref={dropdownRef}>
                 <svg className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 pointer-events-none" fill="none" stroke="#6a6a6a" strokeWidth={2} viewBox="0 0 24 24">
                   <circle cx="11" cy="11" r="8" /><path strokeLinecap="round" d="M21 21l-4.35-4.35" />
@@ -350,34 +408,21 @@ export default function KnowledgeGraphPage() {
                 <input
                   value={searchTerm}
                   onChange={e => setSearchTerm(e.target.value)}
-                  onFocus={() => searchResults.length > 0 && setShowDropdown(true)}
-                  placeholder="Type to search organisation…"
+                  onFocus={() => (mode === 'org' ? searchResults : projectResults).length > 0 && setShowDropdown(true)}
+                  placeholder={mode === 'org' ? 'Type to search organisation…' : 'Type to search project title or acronym…'}
                   className="w-full pl-11 pr-10 py-3.5 rounded-xl text-sm font-medium focus:outline-none transition-all"
-                  style={{
-                    background: '#f7f7f7',
-                    border: '1px solid #ebebeb',
-                    color: '#222222',
-                    fontFamily: 'inherit',
-                  }}
+                  style={{ background: '#f7f7f7', border: '1px solid #ebebeb', color: '#222222', fontFamily: 'inherit' }}
                   onFocusCapture={e => { (e.target as HTMLInputElement).style.borderColor = '#ff385c'; (e.target as HTMLInputElement).style.boxShadow = '0 0 0 2px rgba(255,56,92,0.12)'; }}
                   onBlurCapture={e => { (e.target as HTMLInputElement).style.borderColor = '#ebebeb'; (e.target as HTMLInputElement).style.boxShadow = 'none'; }}
                 />
                 {searchLoading && (
                   <div className="absolute right-4 top-1/2 -translate-y-1/2 w-4 h-4 border-2 rounded-full animate-spin" style={{ borderColor: '#dddddd', borderTopColor: '#ff385c' }} />
                 )}
-                {showDropdown && searchResults.length > 0 && (
-                  <div
-                    className="absolute top-full left-0 right-0 mt-2 rounded-2xl overflow-hidden z-20"
-                    style={{
-                      background: '#ffffff',
-                      boxShadow: 'rgba(0,0,0,0.02) 0px 0px 0px 1px, rgba(0,0,0,0.08) 0px 8px 24px',
-                    }}
-                  >
+                {showDropdown && mode === 'org' && searchResults.length > 0 && (
+                  <div className="absolute top-full left-0 right-0 mt-2 rounded-2xl overflow-hidden z-20" style={{ background: '#ffffff', boxShadow: 'rgba(0,0,0,0.02) 0px 0px 0px 1px, rgba(0,0,0,0.08) 0px 8px 24px' }}>
                     {searchResults.map(r => (
-                      <button
-                        key={r.name}
-                        onClick={() => loadOrg(r.name)}
-                        className="w-full text-left px-4 py-3 text-sm flex items-center justify-between gap-3 transition-colors border-0"
+                      <button key={r.name} onClick={() => loadOrg(r.name)}
+                        className="w-full text-left px-4 py-3 text-sm flex items-center justify-between gap-3 border-0"
                         style={{ background: 'transparent', color: '#222222', cursor: 'pointer', fontFamily: 'inherit', borderBottom: '1px solid #f7f7f7' }}
                         onMouseEnter={e => ((e.currentTarget as HTMLElement).style.background = '#f7f7f7')}
                         onMouseLeave={e => ((e.currentTarget as HTMLElement).style.background = 'transparent')}
@@ -388,19 +433,30 @@ export default function KnowledgeGraphPage() {
                     ))}
                   </div>
                 )}
+                {showDropdown && mode === 'project' && projectResults.length > 0 && (
+                  <div className="absolute top-full left-0 right-0 mt-2 rounded-2xl overflow-hidden z-20" style={{ background: '#ffffff', boxShadow: 'rgba(0,0,0,0.02) 0px 0px 0px 1px, rgba(0,0,0,0.08) 0px 8px 24px' }}>
+                    {projectResults.map(r => (
+                      <button key={r.projectId} onClick={() => loadProject(r.projectId, r.title, r.acronym)}
+                        className="w-full text-left px-4 py-3 text-sm flex items-start gap-3 border-0"
+                        style={{ background: 'transparent', color: '#222222', cursor: 'pointer', fontFamily: 'inherit', borderBottom: '1px solid #f7f7f7' }}
+                        onMouseEnter={e => ((e.currentTarget as HTMLElement).style.background = '#f7f7f7')}
+                        onMouseLeave={e => ((e.currentTarget as HTMLElement).style.background = 'transparent')}
+                      >
+                        <div className="min-w-0">
+                          {r.acronym && <p className="text-[10px] font-bold mb-0.5" style={{ color: '#16a34a' }}>{r.acronym}</p>}
+                          <p className="truncate font-medium">{r.title.length > 60 ? r.title.slice(0, 58) + '…' : r.title}</p>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
             ) : (
               <select
                 defaultValue=""
                 onChange={e => e.target.value && loadCountry(e.target.value)}
                 className="w-full py-3.5 px-4 rounded-xl text-sm font-medium focus:outline-none appearance-none"
-                style={{
-                  background: '#f7f7f7',
-                  border: '1px solid #ebebeb',
-                  color: '#222222',
-                  fontFamily: 'inherit',
-                  cursor: 'pointer',
-                }}
+                style={{ background: '#f7f7f7', border: '1px solid #ebebeb', color: '#222222', fontFamily: 'inherit', cursor: 'pointer' }}
               >
                 <option value="" disabled>Select a country…</option>
                 {countries.map(c => <option key={c} value={c}>{c}</option>)}
@@ -449,10 +505,10 @@ export default function KnowledgeGraphPage() {
           className="flex rounded-xl overflow-hidden text-xs"
           style={{ border: '1px solid #ebebeb', background: '#f7f7f7', padding: '2px' }}
         >
-          {(['org', 'country'] as const).map(m => (
+          {(['org', 'project', 'country'] as const).map(m => (
             <button
               key={m}
-              onClick={() => { setMode(m); setSearchTerm(''); setSearchResults([]); setShowDropdown(false); }}
+              onClick={() => { setMode(m); setSearchTerm(''); setSearchResults([]); setProjectResults([]); setShowDropdown(false); }}
               className="px-3 py-1.5 font-semibold capitalize transition-all rounded-lg border-0 cursor-pointer"
               style={{
                 background: mode === m ? '#ffffff' : 'transparent',
@@ -460,13 +516,13 @@ export default function KnowledgeGraphPage() {
                 boxShadow: mode === m ? 'rgba(0,0,0,0.08) 0px 1px 3px' : 'none',
               }}
             >
-              {m === 'org' ? 'Organisation' : 'Country'}
+              {m === 'org' ? 'Organisation' : m === 'project' ? 'Project' : 'Country'}
             </button>
           ))}
         </div>
 
-        {/* Org search */}
-        {mode === 'org' && (
+        {/* Org / Project search */}
+        {(mode === 'org' || mode === 'project') && (
           <div className="relative" ref={dropdownRef} style={{ width: 300 }}>
             <svg className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 pointer-events-none" fill="none" stroke="#6a6a6a" strokeWidth={2} viewBox="0 0 24 24">
               <circle cx="11" cy="11" r="8" /><path strokeLinecap="round" d="M21 21l-4.35-4.35" />
@@ -474,20 +530,18 @@ export default function KnowledgeGraphPage() {
             <input
               value={searchTerm}
               onChange={e => setSearchTerm(e.target.value)}
-              onFocus={() => searchResults.length > 0 && setShowDropdown(true)}
-              placeholder="Search organisation…"
+              onFocus={() => (mode === 'org' ? searchResults : projectResults).length > 0 && setShowDropdown(true)}
+              placeholder={mode === 'org' ? 'Search organisation…' : 'Search project title or acronym…'}
               className="w-full pl-9 pr-8 py-2 rounded-xl text-sm focus:outline-none"
               style={{ background: '#f7f7f7', border: '1px solid #ebebeb', color: '#222222', fontFamily: 'inherit' }}
             />
             {searchLoading && (
               <div className="absolute right-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 border-2 rounded-full animate-spin" style={{ borderColor: '#dddddd', borderTopColor: '#ff385c' }} />
             )}
-            {showDropdown && searchResults.length > 0 && (
+            {showDropdown && mode === 'org' && searchResults.length > 0 && (
               <div className="absolute top-full left-0 right-0 mt-1 rounded-xl overflow-hidden z-20" style={{ background: '#ffffff', boxShadow: 'rgba(0,0,0,0.02) 0px 0px 0px 1px, rgba(0,0,0,0.08) 0px 8px 24px' }}>
                 {searchResults.map(r => (
-                  <button
-                    key={r.name}
-                    onClick={() => loadOrg(r.name)}
+                  <button key={r.name} onClick={() => loadOrg(r.name)}
                     className="w-full text-left px-4 py-2.5 text-sm flex items-center justify-between gap-3 border-0 cursor-pointer"
                     style={{ background: 'transparent', color: '#222222', fontFamily: 'inherit', borderBottom: '1px solid #f7f7f7' }}
                     onMouseEnter={e => ((e.currentTarget as HTMLElement).style.background = '#f7f7f7')}
@@ -495,6 +549,23 @@ export default function KnowledgeGraphPage() {
                   >
                     <span className="truncate font-medium">{r.name}</span>
                     <span className="text-xs shrink-0" style={{ color: '#ff385c' }}>{r.count} projects</span>
+                  </button>
+                ))}
+              </div>
+            )}
+            {showDropdown && mode === 'project' && projectResults.length > 0 && (
+              <div className="absolute top-full left-0 right-0 mt-1 rounded-xl overflow-hidden z-20" style={{ background: '#ffffff', boxShadow: 'rgba(0,0,0,0.02) 0px 0px 0px 1px, rgba(0,0,0,0.08) 0px 8px 24px' }}>
+                {projectResults.map(r => (
+                  <button key={r.projectId} onClick={() => loadProject(r.projectId, r.title, r.acronym)}
+                    className="w-full text-left px-4 py-2.5 text-sm flex items-start gap-2 border-0 cursor-pointer"
+                    style={{ background: 'transparent', color: '#222222', fontFamily: 'inherit', borderBottom: '1px solid #f7f7f7' }}
+                    onMouseEnter={e => ((e.currentTarget as HTMLElement).style.background = '#f7f7f7')}
+                    onMouseLeave={e => ((e.currentTarget as HTMLElement).style.background = 'transparent')}
+                  >
+                    <div className="min-w-0">
+                      {r.acronym && <p className="text-[10px] font-bold mb-0.5" style={{ color: '#16a34a' }}>{r.acronym}</p>}
+                      <p className="truncate font-medium">{r.title.length > 50 ? r.title.slice(0, 48) + '…' : r.title}</p>
+                    </div>
                   </button>
                 ))}
               </div>

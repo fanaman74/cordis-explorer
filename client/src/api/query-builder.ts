@@ -408,6 +408,24 @@ LIMIT 25
   `.trim();
 }
 
+export function buildProjectSearchForGraphQuery(searchTerm: string): string {
+  const term = escapeString(searchTerm.toUpperCase());
+  return `
+PREFIX eurio: <http://data.europa.eu/s66#>
+
+SELECT DISTINCT ?projectTitle ?projectAcronym ?projectId
+WHERE {
+  ?project a eurio:Project .
+  ?project eurio:title ?projectTitle .
+  OPTIONAL { ?project eurio:acronym ?projectAcronym }
+  OPTIONAL { ?project eurio:identifier ?projectId }
+  FILTER(CONTAINS(UCASE(?projectTitle), '${term}') || CONTAINS(UCASE(COALESCE(?projectAcronym, '')), '${term}'))
+}
+ORDER BY ?projectTitle
+LIMIT 8
+  `.trim();
+}
+
 export function buildCountQuery(filters: SearchFilters): string {
   const searchQuery = buildProjectSearchQuery({ ...filters, page: 1, pageSize: 1 });
   // Wrap the search query as a subquery to count results

@@ -1,5 +1,50 @@
 import { Link } from 'react-router-dom';
+import { useEffect, useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
+import { executeSparql } from '../api/sparql-client';
+
+const ACCENT_COLORS = ['#ff385c', '#2563eb', '#16a34a', '#d97706', '#7c3aed'];
+
+interface LatestProject {
+  id: string;
+  title: string;
+  acronym?: string;
+  startDate?: string;
+  programme?: string;
+}
+
+function useLatestProjects() {
+  const [projects, setProjects] = useState<LatestProject[]>([]);
+  const [loading, setLoading] = useState(true);
+  useEffect(() => {
+    executeSparql(`
+PREFIX eurio: <http://data.europa.eu/s66#>
+SELECT DISTINCT ?projectId ?projectTitle ?projectAcronym ?startDate ?programme
+WHERE {
+  ?project a eurio:Project .
+  ?project eurio:title ?projectTitle .
+  OPTIONAL { ?project eurio:acronym ?projectAcronym }
+  OPTIONAL { ?project eurio:identifier ?projectId }
+  OPTIONAL { ?project eurio:startDate ?startDate }
+  OPTIONAL { ?project eurio:hasFundingSchemeProgramme ?prog . ?prog eurio:title ?programme }
+}
+ORDER BY DESC(?startDate)
+LIMIT 5`.trim())
+      .then(data => {
+        const rows = (data.results.bindings as any[]).map(b => ({
+          id: b.projectId?.value ?? '',
+          title: b.projectTitle?.value ?? '',
+          acronym: b.projectAcronym?.value,
+          startDate: b.startDate?.value,
+          programme: b.programme?.value,
+        })).filter(r => r.title);
+        setProjects(rows);
+      })
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, []);
+  return { projects, loading };
+}
 
 const TOOLS = [
   {
@@ -193,9 +238,107 @@ function EuropeMapAnimation() {
   );
 }
 
+function LatestAdditions() {
+  const { projects, loading } = useLatestProjects();
+
+  return (
+    <section className="max-w-5xl mx-auto px-6 pb-16">
+      <div className="flex items-end justify-between mb-6">
+        <div>
+          <h2 className="text-2xl font-bold mb-1" style={{ color: '#222222', letterSpacing: '-0.04em' }}>
+            Latest additions to CORDIS
+          </h2>
+          <p className="text-sm" style={{ color: '#6a6a6a' }}>Most recently started EU-funded research projects</p>
+        </div>
+        <Link to="/search" className="text-xs font-semibold no-underline flex items-center gap-1"
+          style={{ color: '#ff385c' }}>
+          Browse all →
+        </Link>
+      </div>
+
+      <div className="rounded-2xl overflow-hidden" style={{ border: '1px solid #ebebeb', background: '#ffffff' }}>
+        {/* Header row */}
+        <div className="grid px-5 py-3 text-[10px] font-bold uppercase tracking-widest"
+          style={{ color: '#aaaaaa', borderBottom: '1px solid #f2f2f2', gridTemplateColumns: '2fr 4fr 1.5fr 1.5fr' }}>
+          <span>Project</span>
+          <span>Title</span>
+          <span>Started</span>
+          <span>Programme</span>
+        </div>
+
+        {loading ? (
+          Array.from({ length: 5 }).map((_, i) => (
+            <div key={i} className="grid px-5 py-4 items-center animate-pulse"
+              style={{ gridTemplateColumns: '2fr 4fr 1.5fr 1.5fr', borderBottom: i < 4 ? '1px solid #f7f7f7' : 'none' }}>
+              <div className="h-4 rounded" style={{ background: '#f2f2f2', width: '70%' }} />
+              <div className="h-4 rounded" style={{ background: '#f2f2f2', width: '90%' }} />
+              <div className="h-4 rounded" style={{ background: '#f2f2f2', width: '50%' }} />
+              <div className="h-4 rounded" style={{ background: '#f2f2f2', width: '60%' }} />
+            </div>
+          ))
+        ) : (
+          projects.map((p, i) => {
+            const accent = ACCENT_COLORS[i % ACCENT_COLORS.length];
+            const year = p.startDate ? new Date(p.startDate).getFullYear() : null;
+            return (
+              <div key={p.id || i}
+                className="grid px-5 py-4 items-center transition-colors"
+                style={{
+                  gridTemplateColumns: '2fr 4fr 1.5fr 1.5fr',
+                  borderBottom: i < projects.length - 1 ? '1px solid #f7f7f7' : 'none',
+                  borderLeft: `3px solid ${accent}`,
+                }}
+                onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = '#fafafa'; }}
+                onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = ''; }}
+              >
+                {/* Acronym / ID */}
+                <div className="flex items-center gap-2 min-w-0">
+                  <div className="w-7 h-7 rounded-lg flex items-center justify-center text-[9px] font-black shrink-0"
+                    style={{ background: `${accent}18`, color: accent }}>
+                    {(p.acronym ?? p.id ?? '?').slice(0, 3).toUpperCase()}
+                  </div>
+                  {p.id ? (
+                    <Link to={`/project/${p.id}`} className="text-xs font-bold truncate no-underline hover:underline"
+                      style={{ color: accent }}>
+                      {p.acronym ?? p.id}
+                    </Link>
+                  ) : (
+                    <span className="text-xs font-bold truncate" style={{ color: accent }}>
+                      {p.acronym ?? '—'}
+                    </span>
+                  )}
+                </div>
+
+                {/* Title */}
+                <p className="text-xs font-medium truncate pr-4" style={{ color: '#333333' }}>
+                  {p.title.length > 70 ? p.title.slice(0, 68) + '…' : p.title}
+                </p>
+
+                {/* Date */}
+                <span className="text-xs font-medium" style={{ color: '#6a6a6a' }}>
+                  {year ?? '—'}
+                </span>
+
+                {/* Programme */}
+                <span className="text-xs truncate" style={{ color: '#aaaaaa' }}>
+                  {p.programme ? (p.programme.length > 20 ? p.programme.slice(0, 18) + '…' : p.programme) : '—'}
+                </span>
+              </div>
+            );
+          })
+        )}
+      </div>
+    </section>
+  );
+}
+
 export default function HomePage() {
   const { user, openAuthModal } = useAuth();
   const visibleTools = TOOLS.filter(t => !t.requiresAuth || user);
+
+  useEffect(() => {
+    document.title = 'CORDIS Explorer — Search EU-Funded Research Projects';
+  }, []);
 
   return (
     <div className="min-h-screen" style={{ background: '#ffffff' }}>
@@ -345,20 +488,13 @@ export default function HomePage() {
           TOOLS
       ══════════════════════════════════ */}
       <section className="max-w-5xl mx-auto px-6 py-16">
-        <div className="flex items-end justify-between mb-8">
-          <div>
-            <h2 className="text-3xl font-bold mb-1.5" style={{ color: '#222222', letterSpacing: '-0.04em' }}>
-              Explore our tools
-            </h2>
-            <p className="text-sm" style={{ color: '#6a6a6a' }}>
-              {user ? 'All AI tools unlocked.' : 'Sign in to unlock AI-powered matching.'}
-            </p>
-          </div>
-          {!user && (
-            <button onClick={openAuthModal} className="btn-primary btn-sm btn-pill shrink-0" style={{ height: 36 }}>
-              Sign in
-            </button>
-          )}
+        <div className="mb-8">
+          <h2 className="text-3xl font-bold mb-1.5" style={{ color: '#222222', letterSpacing: '-0.04em' }}>
+            Explore our tools
+          </h2>
+          <p className="text-sm" style={{ color: '#6a6a6a' }}>
+            {user ? 'All AI tools unlocked.' : 'Sign in to unlock AI-powered matching.'}
+          </p>
         </div>
 
         <div className={`grid gap-4 ${visibleTools.length === 1 ? 'grid-cols-1 max-w-xs' : 'grid-cols-1 sm:grid-cols-2'}`}>
@@ -407,6 +543,11 @@ export default function HomePage() {
           ))}
         </div>
       </section>
+
+      {/* ══════════════════════════════════
+          LATEST ADDITIONS
+      ══════════════════════════════════ */}
+      <LatestAdditions />
 
       {/* ══════════════════════════════════
           BOTTOM CTA

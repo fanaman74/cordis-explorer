@@ -1,7 +1,13 @@
+import { useEffect } from 'react';
 import ProfileWizard from '../components/grant-match/ProfileWizard';
 import AuthGate from '../components/auth/AuthGate';
 
 export default function GrantMatchPage() {
+  useEffect(() => {
+    document.title = 'AI Grant Matching — Find EU Grants for Your Startup | CORDIS Explorer';
+    return () => { document.title = 'CORDIS Explorer — Search EU-Funded Research Projects'; };
+  }, []);
+
   return (
     <div className="max-w-2xl mx-auto px-4 py-10">
       <div className="mb-8">

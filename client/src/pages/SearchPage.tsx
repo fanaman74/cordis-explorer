@@ -1,4 +1,4 @@
-import { useCallback } from 'react';
+import { useCallback, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import type { SearchFilters } from '../api/types';
 import { useProjectSearch } from '../hooks/useProjectSearch';
@@ -66,6 +66,13 @@ function exportToCsv(projects: { title: string; acronym?: string; identifier?: s
 export default function SearchPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const filters = filtersFromParams(searchParams);
+
+  useEffect(() => {
+    const kw = filters.keyword;
+    document.title = kw
+      ? `"${kw}" — CORDIS Project Search`
+      : 'Search EU Research Projects — CORDIS Explorer';
+  }, [filters.keyword]);
   const { data: projects = [], isLoading, isError, error } = useProjectSearch(filters);
 
   const updateFilters = useCallback(

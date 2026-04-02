@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useProjectDetail } from '../hooks/useProjectDetail';
 import ProjectDetailView from '../components/project/ProjectDetail';
@@ -7,6 +8,15 @@ import EmptyState from '../components/common/EmptyState';
 export default function ProjectPage() {
   const { id } = useParams<{ id: string }>();
   const { detail, publications } = useProjectDetail(id);
+
+  useEffect(() => {
+    if (detail.data?.title) {
+      const acronym = detail.data.acronym ? ` (${detail.data.acronym})` : '';
+      document.title = `${detail.data.title}${acronym} — CORDIS Explorer`;
+    } else {
+      document.title = 'Project Details — CORDIS Explorer';
+    }
+  }, [detail.data]);
 
   return (
     <div className="max-w-5xl mx-auto px-4 py-8">
