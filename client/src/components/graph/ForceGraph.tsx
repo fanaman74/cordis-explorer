@@ -34,9 +34,9 @@ const COLORS: Record<string, string> = {
   country: '#fbbf24',
 };
 const BG_COLORS: Record<string, string> = {
-  org: 'rgba(79,142,247,0.18)',
-  project: 'rgba(74,222,128,0.18)',
-  country: 'rgba(251,191,36,0.18)',
+  org: 'rgba(79,142,247,0.14)',
+  project: 'rgba(74,222,128,0.14)',
+  country: 'rgba(251,191,36,0.14)',
 };
 
 export default function ForceGraph({ nodes, edges, selectedNodeId, onNodeClick }: Props) {
@@ -161,7 +161,7 @@ export default function ForceGraph({ nodes, edges, selectedNodeId, onNodeClick }
       const idx2 = new Map(nodes.map((n, i) => [n.id, i]));
 
       // Edges
-      ctx.strokeStyle = 'rgba(255,255,255,0.1)';
+      ctx.strokeStyle = 'rgba(100,100,120,0.18)';
       ctx.lineWidth = 1;
       for (const e of edges) {
         const si = idx2.get(e.source); const ti = idx2.get(e.target);
@@ -193,7 +193,7 @@ export default function ForceGraph({ nodes, edges, selectedNodeId, onNodeClick }
 
         // + badge for unexpanded
         if (!node.expanded && node.type !== 'country') {
-          ctx.fillStyle = sel ? 'white' : color;
+          ctx.fillStyle = color;
           ctx.font = `bold ${sel ? 11 : 10}px sans-serif`;
           ctx.textAlign = 'center';
           ctx.textBaseline = 'middle';
@@ -204,7 +204,7 @@ export default function ForceGraph({ nodes, edges, selectedNodeId, onNodeClick }
         const raw = node.label;
         const lbl = raw.length > 24 ? raw.slice(0, 22) + '…' : raw;
         ctx.font = `${sel ? 'bold ' : ''}10.5px sans-serif`;
-        ctx.fillStyle = sel ? 'rgba(255,255,255,0.95)' : 'rgba(255,255,255,0.7)';
+        ctx.fillStyle = sel ? color : 'rgba(40,40,60,0.7)';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'top';
         ctx.fillText(lbl, node.x, node.y + RADIUS + 4);
