@@ -41,7 +41,7 @@ export async function checkAndIncrementUsage(userId: string, tool: ToolName): Pr
 
   if (error) throw new Error(`Usage check failed: ${error.message}`);
 
-  const current: number = (data as Record<string, number>)[col] ?? 0;
+  const current: number = (data as unknown as Record<string, number>)[col] ?? 0;
 
   if (current >= FREE_LIMIT) {
     const err = new Error('limit_exceeded') as Error & { statusCode: number };
