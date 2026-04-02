@@ -57,6 +57,7 @@ export interface SearchFilters {
   organisation?: string;
   euroSciVoc?: string;
   programme?: 'FP7' | 'H2020' | 'HE' | null;
+  cluster?: string | null; // '1'–'6' = HE Pillar 2 cluster number
   startDateFrom?: string;
   startDateTo?: string;
   status?: 'SIGNED' | 'CLOSED' | null;
@@ -76,6 +77,7 @@ export interface StartupProfile {
   firstName: string;
   lastName: string;
   organisationName: string;
+  preferredCluster?: string; // HE cluster number '1'–'6', passed as context hint to AI
   // Step 2
   organisationType: string;
   countryOfTaxResidence: string;

@@ -1,12 +1,15 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import ProfileWizard from '../components/grant-match/ProfileWizard';
 import AuthGate from '../components/auth/AuthGate';
+import ClusterBubbles from '../components/common/ClusterBubbles';
 
 export default function GrantMatchPage() {
   useEffect(() => {
     document.title = 'AI Grant Matching — Find EU Grants for Your Startup | CORDIS Explorer';
     return () => { document.title = 'CORDIS Explorer — Search EU-Funded Research Projects'; };
   }, []);
+
+  const [cluster, setCluster] = useState<string | null>(null);
 
   return (
     <div className="max-w-2xl mx-auto px-4 py-10">
@@ -23,11 +26,28 @@ export default function GrantMatchPage() {
         </p>
       </div>
 
+      {/* Cluster interest picker */}
+      <div
+        className="rounded-2xl p-5 mb-6"
+        style={{
+          background: 'rgba(255,255,255,0.03)',
+          border: '1px solid rgba(255,255,255,0.08)',
+        }}
+      >
+        <p className="text-xs font-semibold mb-1" style={{ color: 'var(--color-text-primary)' }}>
+          Which Horizon Europe cluster fits your work? <span style={{ color: 'var(--color-text-muted)', fontWeight: 400 }}>(optional)</span>
+        </p>
+        <p className="text-xs mb-3" style={{ color: 'var(--color-text-muted)' }}>
+          Selecting a cluster helps Claude focus the search on the most relevant funding calls.
+        </p>
+        <ClusterBubbles selected={cluster} onChange={setCluster} label="" />
+      </div>
+
       <AuthGate
         title="Sign in to run your grant match"
         description="Create a free account to use AI-powered grant matching. It takes less than a minute."
       >
-        <ProfileWizard />
+        <ProfileWizard preferredCluster={cluster} />
       </AuthGate>
     </div>
   );

@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { executeSparql } from '../api/sparql-client';
+import { HE_CLUSTERS } from '../api/query-builder';
 
 const ACCENT_COLORS = ['#ff385c', '#2563eb', '#16a34a', '#d97706', '#7c3aed'];
 
@@ -13,20 +14,27 @@ interface LatestProject {
   programme?: string;
 }
 
+function detectProgramme(startDate?: string): string | undefined {
+  if (!startDate) return undefined;
+  const year = new Date(startDate).getFullYear();
+  if (year >= 2021) return 'HE';
+  if (year >= 2014) return 'H2020';
+  return 'FP7';
+}
+
 function useLatestProjects() {
   const [projects, setProjects] = useState<LatestProject[]>([]);
   const [loading, setLoading] = useState(true);
   useEffect(() => {
     executeSparql(`
 PREFIX eurio: <http://data.europa.eu/s66#>
-SELECT DISTINCT ?projectId ?projectTitle ?projectAcronym ?startDate ?programme
+SELECT DISTINCT ?projectId ?projectTitle ?projectAcronym ?startDate
 WHERE {
   ?project a eurio:Project .
   ?project eurio:title ?projectTitle .
   OPTIONAL { ?project eurio:acronym ?projectAcronym }
   OPTIONAL { ?project eurio:identifier ?projectId }
   OPTIONAL { ?project eurio:startDate ?startDate }
-  OPTIONAL { ?project eurio:hasFundingSchemeProgramme ?prog . ?prog eurio:title ?programme }
 }
 ORDER BY DESC(?startDate)
 LIMIT 5`.trim())
@@ -36,7 +44,7 @@ LIMIT 5`.trim())
           title: b.projectTitle?.value ?? '',
           acronym: b.projectAcronym?.value,
           startDate: b.startDate?.value,
-          programme: b.programme?.value,
+          programme: detectProgramme(b.startDate?.value),
         })).filter(r => r.title);
         setProjects(rows);
       })
@@ -238,95 +246,111 @@ function EuropeMapAnimation() {
   );
 }
 
+const PROGRAMME_STYLES: Record<string, { bg: string; color: string; border: string }> = {
+  HE:    { bg: 'rgba(16,185,129,0.10)',  color: '#059669', border: 'rgba(16,185,129,0.28)' },
+  H2020: { bg: 'rgba(37,99,235,0.10)',   color: '#2563eb', border: 'rgba(37,99,235,0.28)'  },
+  FP7:   { bg: 'rgba(124,58,237,0.10)',  color: '#7c3aed', border: 'rgba(124,58,237,0.28)' },
+};
+
 function LatestAdditions() {
   const { projects, loading } = useLatestProjects();
 
   return (
-    <section className="max-w-5xl mx-auto px-6 pb-16">
-      <div className="flex items-end justify-between mb-6">
-        <div>
-          <h2 className="text-2xl font-bold mb-1" style={{ color: '#222222', letterSpacing: '-0.04em' }}>
-            Latest additions to CORDIS
-          </h2>
-          <p className="text-sm" style={{ color: '#6a6a6a' }}>Most recently started EU-funded research projects</p>
-        </div>
-        <Link to="/search" className="text-xs font-semibold no-underline flex items-center gap-1"
-          style={{ color: '#ff385c' }}>
-          Browse all →
-        </Link>
-      </div>
-
-      <div className="rounded-2xl overflow-hidden" style={{ border: '1px solid #ebebeb', background: '#ffffff' }}>
-        {/* Header row */}
-        <div className="grid px-5 py-3 text-[10px] font-bold uppercase tracking-widest"
-          style={{ color: '#aaaaaa', borderBottom: '1px solid #f2f2f2', gridTemplateColumns: '2fr 4fr 1.5fr 1.5fr' }}>
-          <span>Project</span>
-          <span>Title</span>
-          <span>Started</span>
-          <span>Programme</span>
+    <section style={{ borderTop: '1px solid #ebebeb' }}>
+      <div className="max-w-5xl mx-auto px-6 py-16">
+        <div className="flex items-end justify-between mb-6">
+          <div>
+            <h2 className="text-2xl font-bold mb-1" style={{ color: '#222222', letterSpacing: '-0.04em' }}>
+              Latest additions to CORDIS
+            </h2>
+            <p className="text-sm" style={{ color: '#6a6a6a' }}>Most recently started EU-funded research projects</p>
+          </div>
+          <Link to="/search" className="text-xs font-semibold no-underline flex items-center gap-1"
+            style={{ color: '#ff385c' }}>
+            Browse all →
+          </Link>
         </div>
 
-        {loading ? (
-          Array.from({ length: 5 }).map((_, i) => (
-            <div key={i} className="grid px-5 py-4 items-center animate-pulse"
-              style={{ gridTemplateColumns: '2fr 4fr 1.5fr 1.5fr', borderBottom: i < 4 ? '1px solid #f7f7f7' : 'none' }}>
-              <div className="h-4 rounded" style={{ background: '#f2f2f2', width: '70%' }} />
-              <div className="h-4 rounded" style={{ background: '#f2f2f2', width: '90%' }} />
-              <div className="h-4 rounded" style={{ background: '#f2f2f2', width: '50%' }} />
-              <div className="h-4 rounded" style={{ background: '#f2f2f2', width: '60%' }} />
-            </div>
-          ))
-        ) : (
-          projects.map((p, i) => {
-            const accent = ACCENT_COLORS[i % ACCENT_COLORS.length];
-            const year = p.startDate ? new Date(p.startDate).getFullYear() : null;
-            return (
-              <div key={p.id || i}
-                className="grid px-5 py-4 items-center transition-colors"
-                style={{
-                  gridTemplateColumns: '2fr 4fr 1.5fr 1.5fr',
-                  borderBottom: i < projects.length - 1 ? '1px solid #f7f7f7' : 'none',
-                  borderLeft: `3px solid ${accent}`,
-                }}
-                onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = '#fafafa'; }}
-                onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = ''; }}
-              >
-                {/* Acronym / ID */}
-                <div className="flex items-center gap-2 min-w-0">
-                  <div className="w-7 h-7 rounded-lg flex items-center justify-center text-[9px] font-black shrink-0"
-                    style={{ background: `${accent}18`, color: accent }}>
-                    {(p.acronym ?? p.id ?? '?').slice(0, 3).toUpperCase()}
+        <div className="rounded-2xl overflow-hidden" style={{ border: '1px solid #ebebeb', background: '#ffffff' }}>
+          {/* Header row */}
+          <div className="grid px-5 py-3 text-[10px] font-bold uppercase tracking-widest"
+            style={{ color: '#aaaaaa', borderBottom: '1px solid #f2f2f2', gridTemplateColumns: '2fr 4fr 1.2fr 1.2fr' }}>
+            <span>Project</span>
+            <span>Title</span>
+            <span>Started</span>
+            <span>Programme</span>
+          </div>
+
+          {loading ? (
+            Array.from({ length: 5 }).map((_, i) => (
+              <div key={i} className="grid px-5 py-4 items-center animate-pulse"
+                style={{ gridTemplateColumns: '2fr 4fr 1.2fr 1.2fr', borderBottom: i < 4 ? '1px solid #f7f7f7' : 'none' }}>
+                <div className="h-4 rounded" style={{ background: '#f2f2f2', width: '70%' }} />
+                <div className="h-4 rounded" style={{ background: '#f2f2f2', width: '90%' }} />
+                <div className="h-4 rounded" style={{ background: '#f2f2f2', width: '50%' }} />
+                <div className="h-4 rounded" style={{ background: '#f2f2f2', width: '60%' }} />
+              </div>
+            ))
+          ) : (
+            projects.map((p, i) => {
+              const accent = ACCENT_COLORS[i % ACCENT_COLORS.length];
+              const year = p.startDate ? new Date(p.startDate).getFullYear() : null;
+              const progStyle = p.programme ? PROGRAMME_STYLES[p.programme] : null;
+              return (
+                <div key={p.id || i}
+                  className="grid px-5 py-4 items-center transition-colors"
+                  style={{
+                    gridTemplateColumns: '2fr 4fr 1.2fr 1.2fr',
+                    borderBottom: i < projects.length - 1 ? '1px solid #f7f7f7' : 'none',
+                    borderLeft: `3px solid ${accent}`,
+                  }}
+                  onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = '#fafafa'; }}
+                  onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = ''; }}
+                >
+                  {/* Acronym / ID */}
+                  <div className="flex items-center gap-2 min-w-0">
+                    <div className="w-7 h-7 rounded-lg flex items-center justify-center text-[9px] font-black shrink-0"
+                      style={{ background: `${accent}18`, color: accent }}>
+                      {(p.acronym ?? p.id ?? '?').slice(0, 3).toUpperCase()}
+                    </div>
+                    {p.id ? (
+                      <Link to={`/project/${p.id}`} className="text-xs font-bold truncate no-underline hover:underline"
+                        style={{ color: accent }}>
+                        {p.acronym ?? p.id}
+                      </Link>
+                    ) : (
+                      <span className="text-xs font-bold truncate" style={{ color: accent }}>
+                        {p.acronym ?? '—'}
+                      </span>
+                    )}
                   </div>
-                  {p.id ? (
-                    <Link to={`/project/${p.id}`} className="text-xs font-bold truncate no-underline hover:underline"
-                      style={{ color: accent }}>
-                      {p.acronym ?? p.id}
-                    </Link>
-                  ) : (
-                    <span className="text-xs font-bold truncate" style={{ color: accent }}>
-                      {p.acronym ?? '—'}
+
+                  {/* Title */}
+                  <p className="text-xs font-medium truncate pr-4" style={{ color: '#333333' }}>
+                    {p.title.length > 70 ? p.title.slice(0, 68) + '…' : p.title}
+                  </p>
+
+                  {/* Date */}
+                  <span className="text-xs font-medium" style={{ color: '#6a6a6a' }}>
+                    {year ?? '—'}
+                  </span>
+
+                  {/* Programme badge */}
+                  {progStyle ? (
+                    <span
+                      className="inline-flex items-center rounded-full text-[10px] font-bold px-2 py-0.5 w-fit"
+                      style={{ background: progStyle.bg, color: progStyle.color, border: `1px solid ${progStyle.border}` }}
+                    >
+                      {p.programme}
                     </span>
+                  ) : (
+                    <span className="text-xs" style={{ color: '#cccccc' }}>—</span>
                   )}
                 </div>
-
-                {/* Title */}
-                <p className="text-xs font-medium truncate pr-4" style={{ color: '#333333' }}>
-                  {p.title.length > 70 ? p.title.slice(0, 68) + '…' : p.title}
-                </p>
-
-                {/* Date */}
-                <span className="text-xs font-medium" style={{ color: '#6a6a6a' }}>
-                  {year ?? '—'}
-                </span>
-
-                {/* Programme */}
-                <span className="text-xs truncate" style={{ color: '#aaaaaa' }}>
-                  {p.programme ? (p.programme.length > 20 ? p.programme.slice(0, 18) + '…' : p.programme) : '—'}
-                </span>
-              </div>
-            );
-          })
-        )}
+              );
+            })
+          )}
+        </div>
       </div>
     </section>
   );
@@ -541,6 +565,68 @@ export default function HomePage() {
               </svg>
             </Link>
           ))}
+        </div>
+      </section>
+
+      {/* ══════════════════════════════════
+          BROWSE BY HE CLUSTER
+      ══════════════════════════════════ */}
+      <section style={{ borderTop: '1px solid #ebebeb', borderBottom: '1px solid #ebebeb', background: '#fafafa' }}>
+        <div className="max-w-5xl mx-auto px-6 py-10">
+          <div className="mb-5">
+            <h2 className="text-xl font-bold" style={{ color: '#222222', letterSpacing: '-0.03em' }}>
+              Browse by Horizon Europe Cluster
+            </h2>
+            <p className="text-sm mt-1" style={{ color: '#6a6a6a' }}>
+              Horizon Europe Pillar II organises research into six thematic clusters.
+            </p>
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+            {Object.entries(HE_CLUSTERS).map(([num, cluster]) => (
+              <Link
+                key={num}
+                to={`/search?cluster=${num}&prog=HE`}
+                className="group rounded-xl p-4 flex items-start gap-3 no-underline transition-all duration-150"
+                style={{
+                  background: '#ffffff',
+                  border: `1.5px solid ${cluster.color}28`,
+                  boxShadow: `0 1px 4px ${cluster.color}0a`,
+                }}
+                onMouseEnter={e => {
+                  const el = e.currentTarget as HTMLElement;
+                  el.style.borderColor = `${cluster.color}70`;
+                  el.style.boxShadow = `0 4px 16px ${cluster.color}18`;
+                  el.style.transform = 'translateY(-1px)';
+                }}
+                onMouseLeave={e => {
+                  const el = e.currentTarget as HTMLElement;
+                  el.style.borderColor = `${cluster.color}28`;
+                  el.style.boxShadow = `0 1px 4px ${cluster.color}0a`;
+                  el.style.transform = '';
+                }}
+              >
+                <div
+                  className="flex items-center justify-center rounded-full shrink-0 text-xs font-bold"
+                  style={{
+                    width: 28, height: 28,
+                    background: `${cluster.color}15`,
+                    color: cluster.color,
+                    border: `1.5px solid ${cluster.color}35`,
+                  }}
+                >
+                  {num}
+                </div>
+                <div className="min-w-0">
+                  <div className="text-xs font-bold leading-tight mb-0.5" style={{ color: cluster.color }}>
+                    {cluster.short}
+                  </div>
+                  <div className="text-[11px] leading-snug" style={{ color: '#6a6a6a' }}>
+                    {cluster.label}
+                  </div>
+                </div>
+              </Link>
+            ))}
+          </div>
         </div>
       </section>
 

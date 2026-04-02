@@ -3,6 +3,7 @@ import type { SearchFilters } from '../../api/types';
 import { useCountries } from '../../hooks/useCountries';
 import { useEuroSciVoc } from '../../hooks/useEuroSciVoc';
 import { useManagingInstitutions } from '../../hooks/useManagingInstitutions';
+import ClusterBubbles from '../common/ClusterBubbles';
 
 interface FilterPanelProps {
   filters: SearchFilters;
@@ -46,7 +47,16 @@ export default function FilterPanel({ filters, onFilterChange }: FilterPanelProp
   const [orgInput, setOrgInput] = useState(filters.organisation || '');
 
   return (
-    <div className="flex flex-wrap gap-3 items-end">
+    <div className="space-y-3">
+      {/* Cluster bubbles — full width row */}
+      <ClusterBubbles
+        selected={filters.cluster}
+        onChange={(v) => onFilterChange('cluster', v)}
+        label="Horizon Europe Cluster"
+      />
+
+      {/* Row of dropdowns / inputs */}
+      <div className="flex flex-wrap gap-3 items-end">
       <FilterSelect
         label="Programme"
         value={filters.programme}
@@ -105,6 +115,7 @@ export default function FilterPanel({ filters, onFilterChange }: FilterPanelProp
           title="Start date to"
         />
       </div>
+      </div> {/* end flex row */}
     </div>
   );
 }

@@ -1,4 +1,5 @@
 import type { SearchFilters } from '../../api/types';
+import { HE_CLUSTERS } from '../../api/query-builder';
 
 interface ActiveFiltersProps {
   filters: SearchFilters;
@@ -6,8 +7,12 @@ interface ActiveFiltersProps {
 }
 
 export default function ActiveFilters({ filters, onRemove }: ActiveFiltersProps) {
-  const pills: { key: keyof SearchFilters; label: string }[] = [];
+  const pills: { key: keyof SearchFilters; label: string; color?: string }[] = [];
 
+  if (filters.cluster && HE_CLUSTERS[filters.cluster]) {
+    const c = HE_CLUSTERS[filters.cluster];
+    pills.push({ key: 'cluster', label: `Cluster ${filters.cluster}: ${c.short}`, color: c.color });
+  }
   if (filters.programme) pills.push({ key: 'programme', label: filters.programme });
   if (filters.country) pills.push({ key: 'country', label: filters.country });
   if (filters.euroSciVoc) pills.push({ key: 'euroSciVoc', label: filters.euroSciVoc });
@@ -22,11 +27,16 @@ export default function ActiveFilters({ filters, onRemove }: ActiveFiltersProps)
   return (
     <div className="flex flex-wrap gap-2">
       <span className="text-sm text-[var(--color-text-muted)] py-1">Active:</span>
-      {pills.map(({ key, label }) => (
+      {pills.map(({ key, label, color }) => (
         <button
           key={key}
           onClick={() => onRemove(key)}
-          className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-[color-mix(in_srgb,var(--color-eu-blue)_20%,transparent)] text-sm text-[var(--color-eu-blue-lighter)] hover:bg-[color-mix(in_srgb,var(--color-eu-blue)_30%,transparent)] transition-colors cursor-pointer border-0"
+          className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-sm transition-colors cursor-pointer border-0"
+          style={
+            color
+              ? { background: `${color}18`, color, border: `1px solid ${color}35` }
+              : { background: 'color-mix(in srgb, var(--color-eu-blue) 20%, transparent)', color: 'var(--color-eu-blue-lighter)' }
+          }
         >
           {label}
           <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

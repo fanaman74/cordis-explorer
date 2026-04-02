@@ -8,7 +8,11 @@ import { useGrantMatch } from '../../hooks/useGrantMatch';
 
 const STEP_LABELS = ['About You', 'Your Startup', 'Funding Readiness'];
 
-export default function ProfileWizard() {
+interface ProfileWizardProps {
+  preferredCluster?: string | null;
+}
+
+export default function ProfileWizard({ preferredCluster }: ProfileWizardProps) {
   const [step, setStep] = useState(0);
   const [data, setData] = useState<Partial<StartupProfile>>({});
   const { mutate, isPending, isError, error, data: matchData } = useGrantMatch('grant_match');
@@ -18,7 +22,10 @@ export default function ProfileWizard() {
   }
 
   function handleSubmit() {
-    mutate(data as StartupProfile);
+    mutate({
+      ...data as StartupProfile,
+      ...(preferredCluster ? { preferredCluster } : {}),
+    });
   }
 
   return (

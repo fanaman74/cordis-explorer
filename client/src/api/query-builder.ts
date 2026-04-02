@@ -1,5 +1,15 @@
 import type { SearchFilters } from './types';
 
+// Horizon Europe Pillar 2 clusters — maps cluster number → topic label prefix patterns
+export const HE_CLUSTERS: Record<string, { label: string; short: string; color: string; patterns: string[] }> = {
+  '1': { label: 'Health',                                      short: 'Health',    color: '#f43f5e', patterns: ['HORIZON-HEALTH-', 'HORIZON-CL1-'] },
+  '2': { label: 'Culture, Creativity & Inclusive Society',     short: 'Culture',   color: '#8b5cf6', patterns: ['HORIZON-CL2-'] },
+  '3': { label: 'Civil Security for Society',                  short: 'Security',  color: '#6366f1', patterns: ['HORIZON-CL3-'] },
+  '4': { label: 'Digital, Industry & Space',                   short: 'Digital',   color: '#06b6d4', patterns: ['HORIZON-CL4-'] },
+  '5': { label: 'Climate, Energy & Mobility',                  short: 'Climate',   color: '#10b981', patterns: ['HORIZON-CL5-'] },
+  '6': { label: 'Food, Bioeconomy, Natural Resources & Environment', short: 'Food & Env', color: '#f59e0b', patterns: ['HORIZON-CL6-'] },
+};
+
 // Maps user-facing JU name → one or more SPARQL topic label patterns (UCASE match, OR-combined)
 export const JU_TOPIC_PATTERNS: Record<string, string[]> = {
   'CBE JU':                   ['JU-CBE'],
@@ -127,6 +137,20 @@ export function buildProjectSearchQuery(filters: SearchFilters): string {
       '{ ?instGrant eurio:hasFundingSchemeTopic ?instTopic . } UNION { ?instGrant eurio:hasFundingSchemeCall ?instTopic . }',
       '?instTopic rdfs:label ?instTopicLabel .',
       `FILTER(${filterExpr})`,
+    );
+  }
+
+  // Cluster filter (Horizon Europe Pillar 2 clusters, matched via topic label prefix)
+  if (filters.cluster && HE_CLUSTERS[filters.cluster]) {
+    const clusterPatterns = HE_CLUSTERS[filters.cluster].patterns;
+    const clusterFilterExpr = clusterPatterns
+      .map((p) => `CONTAINS(UCASE(?clusterTopicLabel), '${escapeString(p.toUpperCase())}')`)
+      .join(' || ');
+    whereClauses.push(
+      '?project eurio:isFundedBy ?clusterGrant .',
+      '{ ?clusterGrant eurio:hasFundingSchemeTopic ?clusterTopic . } UNION { ?clusterGrant eurio:hasFundingSchemeCall ?clusterTopic . }',
+      '?clusterTopic rdfs:label ?clusterTopicLabel .',
+      `FILTER(${clusterFilterExpr})`,
     );
   }
 

@@ -3,6 +3,8 @@ import { usePartnerMatch } from '../hooks/usePartnerMatch';
 import type { PartnerResult } from '../hooks/usePartnerMatch';
 import { useCountries } from '../hooks/useCountries';
 import AuthGate from '../components/auth/AuthGate';
+import ClusterBubbles from '../components/common/ClusterBubbles';
+import { HE_CLUSTERS } from '../api/query-builder';
 
 function ScoreBadge({ score }: { score: number }) {
   const color =
@@ -106,13 +108,17 @@ export default function PartnerMatchPage() {
   const [description, setDescription] = useState('');
   const [country, setCountry] = useState('');
   const [maxResults, setMaxResults] = useState(10);
+  const [cluster, setCluster] = useState<string | null>(null);
   const { data: countries = [] } = useCountries();
   const { mutate, data, isPending, error, reset } = usePartnerMatch();
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (description.trim().length < 20) return;
-    mutate({ description: description.trim(), country: country || undefined, maxResults });
+    const clusterContext = cluster && HE_CLUSTERS[cluster]
+      ? `[Horizon Europe Cluster ${cluster}: ${HE_CLUSTERS[cluster].label}] `
+      : '';
+    mutate({ description: clusterContext + description.trim(), country: country || undefined, maxResults });
   }
 
   return (
@@ -144,6 +150,16 @@ export default function PartnerMatchPage() {
 
           {/* Form */}
           <form onSubmit={handleSubmit} className="space-y-4 mb-8">
+            <div
+              className="rounded-xl p-4"
+              style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.07)' }}
+            >
+              <ClusterBubbles
+                selected={cluster}
+                onChange={(v) => { setCluster(v); reset(); }}
+                label="Horizon Europe Cluster (optional)"
+              />
+            </div>
             <div>
               <label className="block text-xs font-semibold mb-2 uppercase tracking-wider" style={{ color: 'var(--color-text-muted)' }}>
                 Project Description *

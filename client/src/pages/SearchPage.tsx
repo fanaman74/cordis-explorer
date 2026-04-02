@@ -17,6 +17,7 @@ function filtersFromParams(params: URLSearchParams): SearchFilters {
     organisation: params.get('org') || undefined,
     euroSciVoc: params.get('esv') || undefined,
     programme: (params.get('prog') as SearchFilters['programme']) || null,
+    cluster: params.get('cluster') || null,
     startDateFrom: params.get('from') || undefined,
     startDateTo: params.get('to') || undefined,
     status: (params.get('status') as SearchFilters['status']) || null,
@@ -33,6 +34,7 @@ function filtersToParams(filters: SearchFilters): Record<string, string> {
   if (filters.organisation) params.org = filters.organisation;
   if (filters.euroSciVoc) params.esv = filters.euroSciVoc;
   if (filters.programme) params.prog = filters.programme;
+  if (filters.cluster) params.cluster = filters.cluster;
   if (filters.startDateFrom) params.from = filters.startDateFrom;
   if (filters.startDateTo) params.to = filters.startDateTo;
   if (filters.status) params.status = filters.status;
