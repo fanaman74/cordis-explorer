@@ -3,8 +3,9 @@
   "configurations": [
     {
       "name": "cordis-explorer",
-      "runtimeExecutable": "npm",
+      "runtimeExecutable": "/Users/fredanaman/.local/share/fnm/node-versions/v20.20.2/installation/bin/npm",
       "runtimeArgs": ["run", "dev"],
+      "cwd": "/Users/fredanaman/Documents/claudecode/cordis-explorer",
       "port": 5173
     }
   ]

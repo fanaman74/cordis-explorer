@@ -11,7 +11,7 @@ const STEP_LABELS = ['About You', 'Your Startup', 'Funding Readiness'];
 export default function ProfileWizard() {
   const [step, setStep] = useState(0);
   const [data, setData] = useState<Partial<StartupProfile>>({});
-  const { mutate, isPending, isError, error, data: matchData } = useGrantMatch();
+  const { mutate, isPending, isError, error, data: matchData } = useGrantMatch('grant_match');
 
   function update(updates: Partial<StartupProfile>) {
     setData(prev => ({ ...prev, ...updates }));

@@ -2,6 +2,7 @@ import { Router } from 'express';
 import type { Request, Response } from 'express';
 import Anthropic from '@anthropic-ai/sdk';
 import { requireAuth } from './auth-middleware.js';
+import { checkAndIncrementUsage } from './usage.js';
 
 export const partnerMatchRouter = Router();
 
@@ -173,6 +174,8 @@ partnerMatchRouter.post('/', requireAuth, async (req: Request, res: Response) =>
   }
 
   try {
+    await checkAndIncrementUsage(req.userId!, 'partner_match');
+
     const keywords = extractKeywords(description);
     const orgs = await fetchOrgsFromSparql(keywords, country);
 
@@ -185,6 +188,7 @@ partnerMatchRouter.post('/', requireAuth, async (req: Request, res: Response) =>
     res.json({ results, keywords, totalCandidates: orgs.length });
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Partner matching failed';
-    res.status(502).json({ error: message });
+    const statusCode = (err as any).statusCode ?? 502;
+    res.status(statusCode).json({ error: message });
   }
 });

@@ -321,6 +321,93 @@ ORDER BY DESC(?projectCount)
   `.trim();
 }
 
+export function buildOrgSearchForGraphQuery(searchTerm: string): string {
+  const term = escapeString(searchTerm.toUpperCase());
+  return `
+PREFIX eurio: <http://data.europa.eu/s66#>
+
+SELECT DISTINCT ?orgName (COUNT(DISTINCT ?project) AS ?projectCount)
+WHERE {
+  ?org eurio:legalName ?orgName .
+  FILTER(CONTAINS(UCASE(?orgName), '${term}'))
+  OPTIONAL {
+    ?project a eurio:Project .
+    ?project eurio:hasInvolvedParty ?role .
+    ?role eurio:isRoleOf ?org .
+  }
+}
+GROUP BY ?orgName
+ORDER BY DESC(?projectCount)
+LIMIT 8
+  `.trim();
+}
+
+export function buildOrgProjectsForGraphQuery(orgName: string): string {
+  const name = escapeString(orgName);
+  return `
+PREFIX eurio: <http://data.europa.eu/s66#>
+
+SELECT DISTINCT ?projectTitle ?projectAcronym ?projectId ?startDate
+WHERE {
+  ?org eurio:legalName '${name}' .
+  ?project eurio:hasInvolvedParty ?role .
+  ?role eurio:isRoleOf ?org .
+  ?project a eurio:Project .
+  ?project eurio:title ?projectTitle .
+  OPTIONAL { ?project eurio:acronym ?projectAcronym }
+  OPTIONAL { ?project eurio:identifier ?projectId }
+  OPTIONAL { ?project eurio:startDate ?startDate }
+}
+ORDER BY DESC(?startDate)
+LIMIT 12
+  `.trim();
+}
+
+export function buildCountryOrgsForGraphQuery(countryName: string): string {
+  const name = escapeString(countryName);
+  return `
+PREFIX eurio: <http://data.europa.eu/s66#>
+
+SELECT DISTINCT ?orgName (COUNT(DISTINCT ?project) AS ?projectCount)
+WHERE {
+  ?country a eurio:Country .
+  ?country eurio:name '${name}' .
+  ?org eurio:hasSite ?site .
+  ?site eurio:hasGeographicalLocation ?country .
+  ?org eurio:legalName ?orgName .
+  ?project a eurio:Project .
+  ?project eurio:hasInvolvedParty ?role .
+  ?role eurio:isRoleOf ?org .
+}
+GROUP BY ?orgName
+ORDER BY DESC(?projectCount)
+LIMIT 15
+  `.trim();
+}
+
+export function buildProjectParticipantsForGraphQuery(projectId: string): string {
+  const id = escapeString(projectId);
+  return `
+PREFIX eurio: <http://data.europa.eu/s66#>
+
+SELECT DISTINCT ?orgName ?countryName ?roleLabel
+WHERE {
+  ?project eurio:identifier '${id}' .
+  ?project eurio:hasInvolvedParty ?role .
+  ?role eurio:isRoleOf ?org .
+  ?org eurio:legalName ?orgName .
+  OPTIONAL { ?role eurio:roleLabel ?roleLabel }
+  OPTIONAL {
+    ?org eurio:hasSite ?site .
+    ?site eurio:hasGeographicalLocation ?country .
+    ?country a eurio:Country .
+    ?country eurio:name ?countryName .
+  }
+}
+LIMIT 25
+  `.trim();
+}
+
 export function buildCountQuery(filters: SearchFilters): string {
   const searchQuery = buildProjectSearchQuery({ ...filters, page: 1, pageSize: 1 });
   // Wrap the search query as a subquery to count results

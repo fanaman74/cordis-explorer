@@ -2,6 +2,15 @@ import type { Request, Response, NextFunction } from 'express';
 import { createClient } from '@supabase/supabase-js';
 import type { SupabaseClient } from '@supabase/supabase-js';
 
+// Extend Express Request so route handlers can read req.userId
+declare global {
+  namespace Express {
+    interface Request {
+      userId?: string;
+    }
+  }
+}
+
 // Lazy init so dotenv has time to load before first request
 let _supabase: SupabaseClient | null = null;
 function getSupabase() {
@@ -27,5 +36,6 @@ export async function requireAuth(req: Request, res: Response, next: NextFunctio
     return;
   }
 
+  req.userId = user.id;
   next();
 }

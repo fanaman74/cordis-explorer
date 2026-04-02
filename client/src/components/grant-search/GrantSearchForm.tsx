@@ -9,7 +9,7 @@ const MATCH_COUNTS = [5, 10, 15];
 
 export default function GrantSearchForm() {
   const { data: countries = [] } = useCountries();
-  const { mutate, isPending, isError, error, data } = useGrantMatch();
+  const { mutate, isPending, isError, error, data } = useGrantMatch('grant_search');
 
   const [profile, setProfile] = useState<Partial<StartupProfile>>({
     matchCount: 5,

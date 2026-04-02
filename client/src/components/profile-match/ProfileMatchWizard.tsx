@@ -10,7 +10,7 @@ const STEP_LABELS = ['About You', 'Your Profile'];
 export default function ProfileMatchWizard() {
   const [step, setStep] = useState(0);
   const [data, setData] = useState<Partial<StartupProfile>>({});
-  const { mutate, isPending, isError, error, data: matchData } = useGrantMatch();
+  const { mutate, isPending, isError, error, data: matchData } = useGrantMatch('profile_match');
 
   function update(updates: Partial<StartupProfile>) {
     setData(prev => ({ ...prev, ...updates }));

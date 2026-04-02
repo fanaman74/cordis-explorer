@@ -1,4 +1,5 @@
 import { useMutation } from '@tanstack/react-query';
+import { useNavigate } from 'react-router-dom';
 import { supabase } from '../lib/supabase';
 
 export interface PartnerRequest {
@@ -44,7 +45,11 @@ async function postPartnerMatch(req: PartnerRequest): Promise<PartnerMatchRespon
 }
 
 export function usePartnerMatch() {
+  const navigate = useNavigate();
   return useMutation<PartnerMatchResponse, Error, PartnerRequest>({
     mutationFn: postPartnerMatch,
+    onError: (err) => {
+      if (err.message === 'limit_exceeded') navigate('/credits');
+    },
   });
 }

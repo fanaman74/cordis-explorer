@@ -37,46 +37,61 @@ export default function AuthModal() {
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
       {/* Backdrop */}
       <div
-        className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+        className="absolute inset-0"
+        style={{ background: 'rgba(34,34,34,0.55)', backdropFilter: 'blur(4px)' }}
         onClick={closeAuthModal}
       />
 
       {/* Modal */}
-      <div className="relative w-full max-w-sm glass-card rounded-2xl p-6 shadow-2xl">
+      <div
+        className="relative w-full max-w-sm rounded-2xl p-7"
+        style={{
+          background: '#ffffff',
+          boxShadow: 'rgba(0,0,0,0.02) 0px 0px 0px 1px, rgba(0,0,0,0.08) 0px 8px 24px, rgba(0,0,0,0.15) 0px 16px 48px',
+        }}
+      >
         {/* Close */}
         <button
           onClick={closeAuthModal}
-          className="absolute top-4 right-4 text-[var(--color-text-muted)] hover:text-[var(--color-text-primary)] transition-colors"
+          className="btn-circle absolute top-4 right-4"
+          style={{ width: '32px', height: '32px' }}
         >
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
           </svg>
         </button>
 
-        {/* Header */}
+        {/* Brand mark */}
         <div className="mb-6">
-          <div className="w-10 h-10 rounded-xl bg-[var(--color-eu-blue)] flex items-center justify-center text-white font-bold text-sm mb-3">
+          <div
+            className="w-10 h-10 rounded-xl flex items-center justify-center text-white font-bold text-sm mb-4"
+            style={{ background: '#ff385c' }}
+          >
             EU
           </div>
-          <h2 className="text-xl font-bold text-[var(--color-text-primary)]">
-            {tab === 'signin' ? 'Sign in to continue' : 'Create your account'}
+          <h2
+            className="text-xl font-bold mb-1"
+            style={{ color: '#222222', letterSpacing: '-0.18px' }}
+          >
+            {tab === 'signin' ? 'Welcome back' : 'Create your account'}
           </h2>
-          <p className="text-sm text-[var(--color-text-muted)] mt-1">
+          <p className="text-sm" style={{ color: '#6a6a6a' }}>
             AI-powered grant matching requires an account
           </p>
         </div>
 
-        {/* Tabs */}
-        <div className="flex gap-1 bg-white/5 rounded-lg p-1 mb-5">
+        {/* Tab switcher */}
+        <div className="flex gap-1 rounded-xl p-1 mb-5" style={{ background: '#f2f2f2' }}>
           {(['signin', 'signup'] as Tab[]).map(t => (
             <button
               key={t}
               onClick={() => { setTab(t); setError(''); setMessage(''); }}
-              className={`flex-1 text-sm font-medium py-1.5 rounded-md transition-colors ${
+              className="flex-1 text-sm font-semibold py-2 rounded-lg cursor-pointer border-0 transition-all duration-200"
+              style={
                 tab === t
-                  ? 'bg-[var(--color-eu-blue)] text-white'
-                  : 'text-[var(--color-text-muted)] hover:text-[var(--color-text-secondary)]'
-              }`}
+                  ? { background: '#ffffff', color: '#222222', boxShadow: 'rgba(0,0,0,0.08) 0px 2px 4px' }
+                  : { background: 'transparent', color: '#6a6a6a' }
+              }
             >
               {t === 'signin' ? 'Sign In' : 'Sign Up'}
             </button>
@@ -86,40 +101,21 @@ export default function AuthModal() {
         {/* Form */}
         <form onSubmit={handleSubmit} className="space-y-3">
           <div>
-            <label className="block text-xs font-medium text-[var(--color-text-secondary)] mb-1">
-              Email
-            </label>
-            <input
-              type="email"
-              required
-              value={email}
-              onChange={e => setEmail(e.target.value)}
-              placeholder="you@example.com"
-              className="w-full rounded-lg border border-[var(--color-border)] bg-white/5 px-3 py-2 text-sm text-[var(--color-text-primary)] placeholder:text-[var(--color-text-muted)] focus:outline-none focus:border-[var(--color-eu-blue-lighter)] transition-colors"
-            />
+            <label className="field-label">Email</label>
+            <input type="email" required value={email} onChange={e => setEmail(e.target.value)} placeholder="you@example.com" className="gm-input" />
           </div>
           <div>
-            <label className="block text-xs font-medium text-[var(--color-text-secondary)] mb-1">
-              Password
-            </label>
-            <input
-              type="password"
-              required
-              minLength={6}
-              value={password}
-              onChange={e => setPassword(e.target.value)}
-              placeholder="••••••••"
-              className="w-full rounded-lg border border-[var(--color-border)] bg-white/5 px-3 py-2 text-sm text-[var(--color-text-primary)] placeholder:text-[var(--color-text-muted)] focus:outline-none focus:border-[var(--color-eu-blue-lighter)] transition-colors"
-            />
+            <label className="field-label">Password</label>
+            <input type="password" required minLength={6} value={password} onChange={e => setPassword(e.target.value)} placeholder="••••••••" className="gm-input" />
           </div>
 
           {error && (
-            <p className="text-xs text-red-400 bg-red-500/10 border border-red-500/20 rounded-lg px-3 py-2">
+            <p className="text-xs rounded-lg px-3 py-2" style={{ color: '#c13515', background: 'rgba(193,53,21,0.06)', border: '1px solid rgba(193,53,21,0.18)' }}>
               {error}
             </p>
           )}
           {message && (
-            <p className="text-xs text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 rounded-lg px-3 py-2">
+            <p className="text-xs rounded-lg px-3 py-2" style={{ color: '#167445', background: 'rgba(22,116,69,0.06)', border: '1px solid rgba(22,116,69,0.18)' }}>
               {message}
             </p>
           )}
@@ -127,7 +123,8 @@ export default function AuthModal() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-2.5 rounded-lg bg-[var(--color-eu-blue)] hover:bg-[var(--color-eu-blue-lighter)] text-white text-sm font-semibold transition-colors disabled:opacity-50 disabled:cursor-not-allowed mt-1"
+            className="btn-primary w-full mt-1"
+            style={{ borderRadius: '8px' }}
           >
             {loading ? 'Please wait…' : tab === 'signin' ? 'Sign In' : 'Create Account'}
           </button>
