@@ -2,7 +2,7 @@ import { jsx, jsxs, Fragment } from "react/jsx-runtime";
 import * as React from "react";
 import React__default, { createContext, useContext, useEffect, useState, useRef, useCallback, lazy, Suspense } from "react";
 import { renderToString } from "react-dom/server";
-import { useQuery, keepPreviousData, useMutation, QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { useQuery, keepPreviousData, useMutation, useQueryClient, QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { stripBasename, UNSAFE_warning, UNSAFE_invariant, matchPath, joinPaths, Action } from "@remix-run/router";
 import { UNSAFE_NavigationContext, useHref, useLocation, useNavigate, useResolvedPath, createPath, UNSAFE_DataRouterStateContext, UNSAFE_useRouteId, UNSAFE_RouteContext, UNSAFE_DataRouterContext, parsePath, Router, useParams, Routes, Route } from "react-router";
 import "react-dom";
@@ -850,6 +850,27 @@ function buildProjectSearchQuery(filters) {
       `FILTER(${clusterFilterExpr})`
     );
   }
+  if (filters.actionType) {
+    const at = escapeString(filters.actionType.toUpperCase());
+    whereClauses.push(
+      "?project eurio:isFundedBy ?atGrant .",
+      "{ ?atGrant eurio:hasFundingSchemeTopic ?atTopic . } UNION { ?atGrant eurio:hasFundingSchemeCall ?atTopic . }",
+      "?atTopic rdfs:label ?atTopicLabel .",
+      `FILTER(CONTAINS(UCASE(?atTopicLabel), '-${at}-') || REGEXP(UCASE(?atTopicLabel), '-${at}$'))`
+    );
+  }
+  if (filters.trlMin != null || filters.trlMax != null) {
+    whereClauses.push(
+      "OPTIONAL { ?project eurio:isFundedBy ?trlGrant . ?trlGrant eurio:minTrl ?minTrl . }",
+      "OPTIONAL { ?project eurio:isFundedBy ?trlGrant2 . ?trlGrant2 eurio:maxTrl ?maxTrl . }"
+    );
+    if (filters.trlMin != null) {
+      whereClauses.push(`FILTER(!BOUND(?maxTrl) || ?maxTrl >= ${filters.trlMin})`);
+    }
+    if (filters.trlMax != null) {
+      whereClauses.push(`FILTER(!BOUND(?minTrl) || ?minTrl <= ${filters.trlMax})`);
+    }
+  }
   whereClauses.push(
     "OPTIONAL {",
     "  ?project eurio:isFundedBy ?_tGrant .",
@@ -1082,6 +1103,157 @@ ORDER BY ?projectTitle
 LIMIT 8
   `.trim();
 }
+function buildOrgSummaryQuery(orgName) {
+  const name = escapeString(orgName);
+  return `
+PREFIX eurio: <http://data.europa.eu/s66#>
+PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+
+SELECT ?countryName
+       (COUNT(DISTINCT ?project) AS ?projectCount)
+WHERE {
+  ?org eurio:legalName '${name}' .
+  OPTIONAL {
+    ?org eurio:hasSite ?site .
+    ?site eurio:hasGeographicalLocation ?country .
+    ?country a eurio:Country .
+    ?country eurio:name ?countryName .
+  }
+  OPTIONAL {
+    ?project a eurio:Project .
+    ?project eurio:hasInvolvedParty ?role .
+    ?role eurio:isRoleOf ?org .
+  }
+}
+GROUP BY ?countryName
+  `.trim();
+}
+function buildOrgProjectsQuery(orgName) {
+  const name = escapeString(orgName);
+  return `
+PREFIX eurio: <http://data.europa.eu/s66#>
+
+SELECT DISTINCT ?title ?acronym ?identifier ?startDate ?roleLabel
+WHERE {
+  ?org eurio:legalName '${name}' .
+  ?project a eurio:Project .
+  ?project eurio:hasInvolvedParty ?role .
+  ?role eurio:isRoleOf ?org .
+  ?project eurio:title ?title .
+  OPTIONAL { ?project eurio:acronym ?acronym }
+  OPTIONAL { ?project eurio:identifier ?identifier }
+  OPTIONAL { ?project eurio:startDate ?startDate }
+  OPTIONAL { ?role eurio:roleLabel ?roleLabel }
+}
+ORDER BY DESC(?startDate)
+LIMIT 20
+  `.trim();
+}
+function buildMscaProjectSearchQuery(keyword, mscaType, page, pageSize) {
+  const offset = (page - 1) * pageSize;
+  const kwFilter = keyword ? `FILTER(CONTAINS(LCASE(?title), '${escapeString(keyword.toLowerCase())}') || CONTAINS(LCASE(COALESCE(?objective,"")), '${escapeString(keyword.toLowerCase())}'))` : "";
+  const typeFilter = mscaType && mscaType !== "all" ? `FILTER(CONTAINS(UCASE(?mscaLabel), '-${escapeString(mscaType.toUpperCase())}-') || REGEXP(UCASE(?mscaLabel), '-${escapeString(mscaType.toUpperCase())}$'))` : "";
+  return `
+PREFIX eurio: <http://data.europa.eu/s66#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+
+SELECT DISTINCT ?project ?title ?acronym ?identifier ?startDate ?mscaLabel ?countryName
+WHERE {
+  ?project a eurio:Project .
+  ?project eurio:title ?title .
+  OPTIONAL { ?project eurio:acronym ?acronym }
+  OPTIONAL { ?project eurio:identifier ?identifier }
+  OPTIONAL { ?project eurio:startDate ?startDate }
+  OPTIONAL { ?project eurio:objective ?objective }
+
+  ?project eurio:isFundedBy ?mscaGrant .
+  { ?mscaGrant eurio:hasFundingSchemeTopic ?mscaTopic . } UNION { ?mscaGrant eurio:hasFundingSchemeCall ?mscaTopic . }
+  ?mscaTopic rdfs:label ?mscaLabel .
+  FILTER(
+    CONTAINS(UCASE(?mscaLabel), 'MSCA') ||
+    CONTAINS(UCASE(?mscaLabel), 'MARIE-CURIE') ||
+    CONTAINS(UCASE(?mscaLabel), 'MARIE CURIE') ||
+    CONTAINS(UCASE(?mscaLabel), 'H2020-MSCA') ||
+    CONTAINS(UCASE(?mscaLabel), 'FP7-PEOPLE')
+  )
+  ${typeFilter}
+
+  OPTIONAL {
+    ?project eurio:hasInvolvedParty ?coordRole .
+    ?coordRole eurio:roleLabel ?rl .
+    FILTER(CONTAINS(UCASE(?rl), 'COORDINATOR'))
+    ?coordRole eurio:isRoleOf ?coordOrg .
+    ?coordOrg eurio:hasSite ?coordSite .
+    ?coordSite eurio:hasGeographicalLocation ?coordCountry .
+    ?coordCountry a eurio:Country .
+    ?coordCountry eurio:name ?countryName .
+  }
+
+  ${kwFilter}
+}
+ORDER BY DESC(?startDate)
+LIMIT ${pageSize}
+OFFSET ${offset}
+  `.trim();
+}
+function buildMscaSupervisorSearchQuery(researchArea) {
+  const area = escapeString(researchArea.toLowerCase());
+  return `
+PREFIX eurio: <http://data.europa.eu/s66#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+
+SELECT ?orgName ?countryName (COUNT(DISTINCT ?project) AS ?mscaProjectCount)
+       (GROUP_CONCAT(DISTINCT ?title; SEPARATOR="||") AS ?projectTitles)
+WHERE {
+  ?project a eurio:Project .
+  ?project eurio:title ?title .
+  FILTER(CONTAINS(LCASE(?title), '${area}'))
+
+  ?project eurio:isFundedBy ?mscaGrant .
+  { ?mscaGrant eurio:hasFundingSchemeTopic ?mscaTopic . } UNION { ?mscaGrant eurio:hasFundingSchemeCall ?mscaTopic . }
+  ?mscaTopic rdfs:label ?mscaLabel .
+  FILTER(
+    CONTAINS(UCASE(?mscaLabel), 'MSCA') ||
+    CONTAINS(UCASE(?mscaLabel), 'MARIE') ||
+    CONTAINS(UCASE(?mscaLabel), 'FP7-PEOPLE')
+  )
+
+  ?project eurio:hasInvolvedParty ?role .
+  ?role eurio:isRoleOf ?org .
+  ?org eurio:legalName ?orgName .
+  OPTIONAL {
+    ?org eurio:hasSite ?site .
+    ?site eurio:hasGeographicalLocation ?country .
+    ?country a eurio:Country .
+    ?country eurio:name ?countryName .
+  }
+}
+GROUP BY ?orgName ?countryName
+ORDER BY DESC(?mscaProjectCount)
+LIMIT 20
+  `.trim();
+}
+function buildOrgCoApplicantsQuery(orgName) {
+  const name = escapeString(orgName);
+  return `
+PREFIX eurio: <http://data.europa.eu/s66#>
+
+SELECT ?coOrgName (COUNT(DISTINCT ?project) AS ?sharedCount)
+WHERE {
+  ?org eurio:legalName '${name}' .
+  ?project a eurio:Project .
+  ?project eurio:hasInvolvedParty ?role1 .
+  ?role1 eurio:isRoleOf ?org .
+  ?project eurio:hasInvolvedParty ?role2 .
+  ?role2 eurio:isRoleOf ?coOrg .
+  ?coOrg eurio:legalName ?coOrgName .
+  FILTER(?coOrgName != '${name}')
+}
+GROUP BY ?coOrgName
+ORDER BY DESC(?sharedCount)
+LIMIT 10
+  `.trim();
+}
 async function executeSparql(query) {
   const response = await fetch("/api/sparql", {
     method: "POST",
@@ -1282,6 +1454,19 @@ const TOOLS = [
     description: "Find ideal EU consortium partners using AI."
   },
   {
+    requiresAuth: true,
+    to: "/partner-search",
+    icon: "🤝",
+    label: "Partner Search Hub",
+    description: "Find organisations actively seeking EU research partners via the F&T Portal, enriched with their CORDIS track record."
+  },
+  {
+    to: "/events",
+    icon: "📅",
+    label: "Brokerage Events",
+    description: "Find EU research networking and matchmaking events from the Enterprise Europe Network, filterable by cluster and country."
+  },
+  {
     to: "/graph",
     icon: /* @__PURE__ */ jsxs("svg", { viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: 1.8, className: "w-5 h-5", children: [
       /* @__PURE__ */ jsx("circle", { cx: "5", cy: "12", r: "2.5" }),
@@ -1298,6 +1483,12 @@ const TOOLS = [
     icon: /* @__PURE__ */ jsx("svg", { viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", strokeWidth: 1.8, className: "w-5 h-5", children: /* @__PURE__ */ jsx("path", { strokeLinecap: "round", strokeLinejoin: "round", d: "M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" }) }),
     label: "Geographic Map",
     description: "See EU project distribution across countries on an interactive map."
+  },
+  {
+    to: "/msca",
+    icon: "🎓",
+    label: "MSCA Explorer",
+    description: "Search Marie Skłodowska-Curie Actions projects and discover host organisations for fellowships and doctoral networks."
   }
 ];
 const EU_COUNTRIES = [
@@ -1848,6 +2039,14 @@ function HomePage() {
             /* @__PURE__ */ jsxs("div", { className: "flex-1 min-w-0 pt-0.5", children: [
               /* @__PURE__ */ jsxs("div", { className: "flex items-center gap-2 mb-1", children: [
                 /* @__PURE__ */ jsx("span", { className: "font-semibold text-sm", style: { color: "#222222", letterSpacing: "-0.01em" }, children: tool.label }),
+                tool.requiresAuth && /* @__PURE__ */ jsx(
+                  "span",
+                  {
+                    className: "rounded-full text-[10px] font-bold px-2 py-0.5",
+                    style: { background: "linear-gradient(135deg, #ff385c, #e00b41)", color: "#ffffff", letterSpacing: "0.04em" },
+                    children: "PRO"
+                  }
+                ),
                 tool.badge && /* @__PURE__ */ jsx(
                   "span",
                   {
@@ -1953,6 +2152,32 @@ function useProjectSearch(filters) {
       return parseProjectSummaries(data);
     },
     placeholderData: keepPreviousData
+  });
+}
+async function postSearchEnhance(keyword, projects) {
+  const { data: { session } } = await supabase.auth.getSession();
+  const token = session == null ? void 0 : session.access_token;
+  const response = await fetch("/api/search-enhance", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      ...token ? { "Authorization": `Bearer ${token}` } : {}
+    },
+    body: JSON.stringify({ keyword, projects })
+  });
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({ error: "Unknown error" }));
+    throw new Error(err.error || `Search enhance failed: ${response.status}`);
+  }
+  return response.json();
+}
+function useSearchEnhance() {
+  const navigate = useNavigate();
+  return useMutation({
+    mutationFn: ({ keyword, projects }) => postSearchEnhance(keyword, projects),
+    onError: (err) => {
+      if (err.message === "limit_exceeded") navigate("/pricing");
+    }
   });
 }
 function SearchBar({ value, onChange }) {
@@ -2159,6 +2384,33 @@ function FilterPanel({ filters, onFilterChange }) {
           loading: institutionsLoading
         }
       ),
+      /* @__PURE__ */ jsx(
+        FilterSelect,
+        {
+          label: "Action Type",
+          value: filters.actionType ?? null,
+          options: ["RIA", "IA", "CSA", "ERC", "MSCA"],
+          onChange: (v) => onFilterChange("actionType", v)
+        }
+      ),
+      /* @__PURE__ */ jsx(
+        FilterSelect,
+        {
+          label: "Min TRL",
+          value: filters.trlMin != null ? String(filters.trlMin) : null,
+          options: ["1", "2", "3", "4", "5", "6", "7", "8", "9"],
+          onChange: (v) => onFilterChange("trlMin", v)
+        }
+      ),
+      /* @__PURE__ */ jsx(
+        FilterSelect,
+        {
+          label: "Max TRL",
+          value: filters.trlMax != null ? String(filters.trlMax) : null,
+          options: ["1", "2", "3", "4", "5", "6", "7", "8", "9"],
+          onChange: (v) => onFilterChange("trlMax", v)
+        }
+      ),
       /* @__PURE__ */ jsx("div", { children: /* @__PURE__ */ jsx(
         "input",
         {
@@ -2211,6 +2463,9 @@ function ActiveFilters({ filters, onRemove }) {
   if (filters.startDateTo) pills.push({ key: "startDateTo", label: `To: ${filters.startDateTo}` });
   if (filters.status) pills.push({ key: "status", label: filters.status });
   if (filters.managingInstitution) pills.push({ key: "managingInstitution", label: `Inst: ${filters.managingInstitution}` });
+  if (filters.actionType) pills.push({ key: "actionType", label: `Action: ${filters.actionType}` });
+  if (filters.trlMin != null) pills.push({ key: "trlMin", label: `TRL ≥ ${filters.trlMin}` });
+  if (filters.trlMax != null) pills.push({ key: "trlMax", label: `TRL ≤ ${filters.trlMax}` });
   if (pills.length === 0) return null;
   return /* @__PURE__ */ jsxs("div", { className: "flex flex-wrap gap-2", children: [
     /* @__PURE__ */ jsx("span", { className: "text-sm text-[var(--color-text-muted)] py-1", children: "Active:" }),
@@ -2239,7 +2494,7 @@ function Badge({ programme }) {
   const config = programmeConfig[programme];
   return /* @__PURE__ */ jsx("span", { className: `inline-flex items-center px-2 py-0.5 rounded text-xs font-medium text-white ${config.bg}`, children: config.label });
 }
-function formatDate$2(date) {
+function formatDate$3(date) {
   if (!date) return "";
   return new Date(date).toLocaleDateString("en-GB", { year: "numeric", month: "short", day: "numeric" });
 }
@@ -2280,8 +2535,8 @@ function ProjectCard({ project }) {
         /* @__PURE__ */ jsxs("div", { className: "mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-[var(--color-text-secondary)]", children: [
           (project.startDate || project.endDate) && /* @__PURE__ */ jsxs("span", { className: `flex items-center gap-1 ${dateStatus ? DATE_STATUS_CLASS[dateStatus] : ""}`, children: [
             /* @__PURE__ */ jsx("svg", { className: "w-3.5 h-3.5", fill: "none", stroke: "currentColor", viewBox: "0 0 24 24", children: /* @__PURE__ */ jsx("path", { strokeLinecap: "round", strokeLinejoin: "round", strokeWidth: 2, d: "M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" }) }),
-            formatDate$2(project.startDate),
-            project.endDate && ` → ${formatDate$2(project.endDate)}`
+            formatDate$3(project.startDate),
+            project.endDate && ` → ${formatDate$3(project.endDate)}`
           ] }),
           project.coordinator && /* @__PURE__ */ jsxs("span", { className: "flex items-center gap-1", children: [
             /* @__PURE__ */ jsx("svg", { className: "w-3.5 h-3.5", fill: "none", stroke: "currentColor", viewBox: "0 0 24 24", children: /* @__PURE__ */ jsx("path", { strokeLinecap: "round", strokeLinejoin: "round", strokeWidth: 2, d: "M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" }) }),
@@ -2365,7 +2620,7 @@ function Pagination({ page, pageSize, resultCount, onPageChange }) {
     ] })
   ] });
 }
-const PAGE_SIZE = 25;
+const PAGE_SIZE$3 = 25;
 function filtersFromParams(params) {
   return {
     keyword: params.get("q") || void 0,
@@ -2378,8 +2633,11 @@ function filtersFromParams(params) {
     startDateTo: params.get("to") || void 0,
     status: params.get("status") || null,
     managingInstitution: params.get("inst") || void 0,
+    actionType: params.get("actionType") ?? null,
+    trlMin: params.get("trlMin") ? parseInt(params.get("trlMin"), 10) : null,
+    trlMax: params.get("trlMax") ? parseInt(params.get("trlMax"), 10) : null,
     page: parseInt(params.get("page") || "1", 10),
-    pageSize: PAGE_SIZE
+    pageSize: PAGE_SIZE$3
   };
 }
 function filtersToParams(filters) {
@@ -2394,6 +2652,9 @@ function filtersToParams(filters) {
   if (filters.startDateTo) params.to = filters.startDateTo;
   if (filters.status) params.status = filters.status;
   if (filters.managingInstitution) params.inst = filters.managingInstitution;
+  if (filters.actionType) params.actionType = filters.actionType;
+  if (filters.trlMin != null) params.trlMin = String(filters.trlMin);
+  if (filters.trlMax != null) params.trlMax = String(filters.trlMax);
   if (filters.page > 1) params.page = String(filters.page);
   return params;
 }
@@ -2419,6 +2680,7 @@ function exportToCsv(projects) {
   URL.revokeObjectURL(url);
 }
 function SearchPage() {
+  var _a;
   const [searchParams, setSearchParams] = useSearchParams();
   const filters = filtersFromParams(searchParams);
   useEffect(() => {
@@ -2426,6 +2688,14 @@ function SearchPage() {
     document.title = kw ? `"${kw}" — CORDIS Project Search` : "Search EU Research Projects — CORDIS Explorer";
   }, [filters.keyword]);
   const { data: projects = [], isLoading, isError, error } = useProjectSearch(filters);
+  const enhanceMutation = useSearchEnhance();
+  const [aiEnhanced, setAiEnhanced] = useState(false);
+  const enhancedProjects = ((_a = enhanceMutation.data) == null ? void 0 : _a.results) ?? null;
+  const displayProjects = aiEnhanced && enhancedProjects ? enhancedProjects.map((ep) => (projects == null ? void 0 : projects.find((p) => p.uri === ep.uri)) ?? ep) : projects;
+  useEffect(() => {
+    setAiEnhanced(false);
+    enhanceMutation.reset();
+  }, [filters.keyword]);
   const updateFilters = useCallback(
     (updates) => {
       const newFilters = { ...filters, ...updates, page: updates.page ?? 1 };
@@ -2437,7 +2707,9 @@ function SearchPage() {
     updateFilters({ keyword: keyword || void 0 });
   }
   function handleFilterChange(key, value) {
-    updateFilters({ [key]: value || void 0 });
+    const numericFields = ["trlMin", "trlMax"];
+    const parsedValue = numericFields.includes(key) && value !== null ? parseInt(value, 10) : value;
+    updateFilters({ [key]: parsedValue ?? void 0 });
   }
   function handleRemoveFilter(key) {
     updateFilters({ [key]: void 0 });
@@ -2467,10 +2739,35 @@ function SearchPage() {
         }
       )
     ] }),
+    projects && projects.length > 0 && filters.keyword && /* @__PURE__ */ jsxs("div", { className: "flex items-center gap-2 mt-2", children: [
+      /* @__PURE__ */ jsxs(
+        "button",
+        {
+          onClick: () => {
+            if (!aiEnhanced) {
+              enhanceMutation.mutate(
+                { keyword: filters.keyword, projects: projects.slice(0, 30) },
+                { onSuccess: () => setAiEnhanced(true) }
+              );
+            } else {
+              setAiEnhanced(false);
+            }
+          },
+          disabled: enhanceMutation.isPending,
+          className: "flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border transition-all",
+          style: aiEnhanced ? { background: "var(--color-eu-blue)", color: "#fff", borderColor: "var(--color-eu-blue)" } : { background: "transparent", color: "var(--color-text-secondary)", borderColor: "var(--color-border)" },
+          children: [
+            enhanceMutation.isPending ? /* @__PURE__ */ jsx("span", { className: "animate-spin inline-block w-3 h-3 border-2 border-current border-t-transparent rounded-full" }) : /* @__PURE__ */ jsx("span", { children: "✦" }),
+            aiEnhanced ? "AI ranked" : "AI re-rank"
+          ]
+        }
+      ),
+      aiEnhanced && /* @__PURE__ */ jsx("span", { className: "text-xs text-[var(--color-text-secondary)]", children: "Results re-ordered by semantic relevance" })
+    ] }),
     /* @__PURE__ */ jsx("div", { className: "mt-4", children: /* @__PURE__ */ jsx(
       SearchResults,
       {
-        projects,
+        projects: displayProjects ?? [],
         isLoading,
         isError,
         error,
@@ -2526,7 +2823,14 @@ function ParticipantList({ participants }) {
         /* @__PURE__ */ jsx("th", { className: "text-left py-2 text-[var(--color-text-muted)] font-medium", children: "Country" })
       ] }) }),
       /* @__PURE__ */ jsx("tbody", { children: participants.map((p, i) => /* @__PURE__ */ jsxs("tr", { className: "border-b border-[var(--color-border)] border-opacity-50", children: [
-        /* @__PURE__ */ jsx("td", { className: "py-2 pr-4 text-[var(--color-text-primary)]", children: p.orgName }),
+        /* @__PURE__ */ jsx("td", { className: "py-2 pr-4 text-[var(--color-text-primary)]", children: /* @__PURE__ */ jsx(
+          Link,
+          {
+            to: `/org/${encodeURIComponent(p.orgName)}`,
+            className: "text-[var(--color-eu-blue-lighter)] hover:underline",
+            children: p.orgName
+          }
+        ) }),
         /* @__PURE__ */ jsx("td", { className: "py-2 pr-4", children: /* @__PURE__ */ jsx(
           "span",
           {
@@ -2566,7 +2870,7 @@ function PublicationList({ publications }) {
     ] }, i)) })
   ] });
 }
-function formatDate$1(date) {
+function formatDate$2(date) {
   if (!date) return "N/A";
   return new Date(date).toLocaleDateString("en-GB", { year: "numeric", month: "long", day: "numeric" });
 }
@@ -2586,11 +2890,11 @@ function ProjectDetailView({ project, publications }) {
     /* @__PURE__ */ jsxs("div", { className: "grid grid-cols-2 md:grid-cols-4 gap-4", children: [
       /* @__PURE__ */ jsxs("div", { className: "glass-card rounded-lg p-4", children: [
         /* @__PURE__ */ jsx("div", { className: "text-xs text-[var(--color-text-muted)] mb-1", children: "Start Date" }),
-        /* @__PURE__ */ jsx("div", { className: "text-sm font-medium text-[var(--color-text-primary)]", children: formatDate$1(project.startDate) })
+        /* @__PURE__ */ jsx("div", { className: "text-sm font-medium text-[var(--color-text-primary)]", children: formatDate$2(project.startDate) })
       ] }),
       /* @__PURE__ */ jsxs("div", { className: "glass-card rounded-lg p-4", children: [
         /* @__PURE__ */ jsx("div", { className: "text-xs text-[var(--color-text-muted)] mb-1", children: "End Date" }),
-        /* @__PURE__ */ jsx("div", { className: "text-sm font-medium text-[var(--color-text-primary)]", children: formatDate$1(project.endDate) })
+        /* @__PURE__ */ jsx("div", { className: "text-sm font-medium text-[var(--color-text-primary)]", children: formatDate$2(project.endDate) })
       ] }),
       /* @__PURE__ */ jsxs("div", { className: "glass-card rounded-lg p-4", children: [
         /* @__PURE__ */ jsx("div", { className: "text-xs text-[var(--color-text-muted)] mb-1", children: "Coordinator" }),
@@ -2942,6 +3246,51 @@ function Step3Funding({ data, onChange, onBack, onSubmit, isLoading }) {
     ] })
   ] });
 }
+async function authHeaders() {
+  const { data: { session } } = await supabase.auth.getSession();
+  return (session == null ? void 0 : session.access_token) ? { "Authorization": `Bearer ${session.access_token}` } : {};
+}
+function useWatchlist() {
+  return useQuery({
+    queryKey: ["watchlist"],
+    queryFn: async () => {
+      const headers = await authHeaders();
+      if (!headers["Authorization"]) return [];
+      const resp = await fetch("/api/watchlist", { headers });
+      if (!resp.ok) return [];
+      const data = await resp.json();
+      return data.items ?? [];
+    },
+    staleTime: 1e3 * 60 * 5
+  });
+}
+function useToggleWatchlist() {
+  const qc = useQueryClient();
+  const add = useMutation({
+    mutationFn: async (item) => {
+      const headers = { ...await authHeaders(), "Content-Type": "application/json" };
+      const resp = await fetch("/api/watchlist", {
+        method: "POST",
+        headers,
+        body: JSON.stringify(item)
+      });
+      if (!resp.ok) throw new Error("Failed to save to watchlist");
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["watchlist"] })
+  });
+  const remove = useMutation({
+    mutationFn: async (callId) => {
+      const headers = await authHeaders();
+      const resp = await fetch(`/api/watchlist/${encodeURIComponent(callId)}`, {
+        method: "DELETE",
+        headers
+      });
+      if (!resp.ok) throw new Error("Failed to remove from watchlist");
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["watchlist"] })
+  });
+  return { add, remove };
+}
 const VERDICT_STYLES = {
   GO: {
     card: "border-emerald-500/20 bg-emerald-500/[0.04]",
@@ -2959,6 +3308,9 @@ const VERDICT_STYLES = {
 function MatchCard({ result }) {
   const [expanded, setExpanded] = useState(false);
   const styles = VERDICT_STYLES[result.verdict] ?? VERDICT_STYLES["MAYBE"];
+  const { data: watchlist = [] } = useWatchlist();
+  const { add, remove } = useToggleWatchlist();
+  const isSaved = watchlist.some((w) => w.call_id === result.callId);
   return /* @__PURE__ */ jsxs("div", { className: `rounded-xl border ${styles.card}`, children: [
     /* @__PURE__ */ jsxs(
       "button",
@@ -2969,6 +3321,14 @@ function MatchCard({ result }) {
           /* @__PURE__ */ jsxs("div", { className: "flex-1 min-w-0", children: [
             /* @__PURE__ */ jsx("h4", { className: "font-semibold text-[var(--color-text-primary)] text-sm leading-snug", children: result.callTitle }),
             /* @__PURE__ */ jsx("p", { className: "text-xs text-[var(--color-text-muted)] mt-0.5 font-mono", children: result.callId }),
+            result.callId && /* @__PURE__ */ jsx(
+              "a",
+              {
+                href: `/partner-search?callId=${encodeURIComponent(result.callId)}`,
+                className: "inline-flex items-center gap-1 text-xs text-[var(--color-eu-blue-lighter)] hover:underline mt-1",
+                children: "🤝 Find partners →"
+              }
+            ),
             (result.deadline || result.budget) && /* @__PURE__ */ jsxs("p", { className: "text-xs text-[var(--color-text-muted)] mt-1", children: [
               result.budget && /* @__PURE__ */ jsx("span", { children: result.budget }),
               result.deadline && result.budget && /* @__PURE__ */ jsx("span", { className: "mx-1", children: "·" }),
@@ -3001,6 +3361,27 @@ function MatchCard({ result }) {
             ] })
           ] }),
           /* @__PURE__ */ jsxs("div", { className: "flex items-center gap-2 shrink-0", children: [
+            /* @__PURE__ */ jsx(
+              "button",
+              {
+                onClick: (e) => {
+                  e.stopPropagation();
+                  if (isSaved) {
+                    remove.mutate(result.callId);
+                  } else {
+                    add.mutate({
+                      call_id: result.callId,
+                      call_title: result.callTitle,
+                      deadline: result.deadline
+                    });
+                  }
+                },
+                title: isSaved ? "Remove from watchlist" : "Save to watchlist",
+                className: "text-lg leading-none transition-transform hover:scale-110 ml-2 shrink-0",
+                "aria-label": isSaved ? "Remove from watchlist" : "Add to watchlist",
+                children: isSaved ? "⭐" : "☆"
+              }
+            ),
             /* @__PURE__ */ jsxs("span", { className: `px-2.5 py-1 rounded-full text-xs font-bold ${styles.badge}`, children: [
               result.matchScore,
               " · ",
@@ -4061,7 +4442,7 @@ function ScoreBadge({ score }) {
     }
   );
 }
-function PartnerCard({ result }) {
+function PartnerCard$1({ result }) {
   return /* @__PURE__ */ jsxs(
     "div",
     {
@@ -4073,7 +4454,14 @@ function PartnerCard({ result }) {
       children: [
         /* @__PURE__ */ jsxs("div", { className: "flex items-start justify-between gap-3", children: [
           /* @__PURE__ */ jsxs("div", { className: "min-w-0", children: [
-            /* @__PURE__ */ jsx("h3", { className: "font-bold text-sm leading-snug", style: { color: "var(--color-text-primary)" }, children: result.orgName }),
+            /* @__PURE__ */ jsx("h3", { className: "font-bold text-sm leading-snug", style: { color: "var(--color-text-primary)" }, children: /* @__PURE__ */ jsx(
+              Link,
+              {
+                to: `/org/${encodeURIComponent(result.orgName)}`,
+                className: "text-[var(--color-eu-blue-lighter)] hover:underline",
+                children: result.orgName
+              }
+            ) }),
             /* @__PURE__ */ jsxs("div", { className: "flex items-center gap-2 mt-1", children: [
               /* @__PURE__ */ jsx("span", { className: "text-xs", style: { color: "var(--color-text-muted)" }, children: result.country }),
               /* @__PURE__ */ jsx("span", { className: "text-[10px]", style: { color: "var(--color-text-muted)" }, children: "·" }),
@@ -4282,9 +4670,204 @@ function PartnerMatchPage() {
           data.keywords.join(", ")
         ] })
       ] }) }),
-      data.results.length === 0 ? /* @__PURE__ */ jsx("div", { className: "text-center py-12", style: { color: "var(--color-text-muted)" }, children: /* @__PURE__ */ jsx("p", { className: "text-sm", children: "No matching partners found. Try broadening your description." }) }) : /* @__PURE__ */ jsx("div", { className: "grid gap-4", children: data.results.map((result, i) => /* @__PURE__ */ jsx(PartnerCard, { result }, i)) })
+      data.results.length === 0 ? /* @__PURE__ */ jsx("div", { className: "text-center py-12", style: { color: "var(--color-text-muted)" }, children: /* @__PURE__ */ jsx("p", { className: "text-sm", children: "No matching partners found. Try broadening your description." }) }) : /* @__PURE__ */ jsx("div", { className: "grid gap-4", children: data.results.map((result, i) => /* @__PURE__ */ jsx(PartnerCard$1, { result }, i)) })
     ] })
   ] }) }) });
+}
+async function fetchPartnerSearch(filters) {
+  const { data: { session } } = await supabase.auth.getSession();
+  const token = session == null ? void 0 : session.access_token;
+  const params = new URLSearchParams();
+  if (filters.callId) params.set("callId", filters.callId);
+  if (filters.cluster) params.set("cluster", filters.cluster);
+  if (filters.country) params.set("country", filters.country);
+  params.set("page", String(filters.page));
+  const response = await fetch(`/api/partner-search-hub?${params}`, {
+    headers: token ? { "Authorization": `Bearer ${token}` } : {}
+  });
+  if (!response.ok) {
+    const err = await response.json().catch(() => ({ error: "Unknown error" }));
+    throw new Error(err.error || `Partner search failed: ${response.status}`);
+  }
+  return response.json();
+}
+function usePartnerSearch(filters) {
+  return useQuery({
+    queryKey: ["partnerSearch", filters],
+    queryFn: () => fetchPartnerSearch(filters),
+    placeholderData: keepPreviousData,
+    enabled: !!(filters.callId || filters.cluster || filters.country),
+    staleTime: 1e3 * 60 * 15
+  });
+}
+const PAGE_SIZE$2 = 20;
+function PartnerCard({ profile }) {
+  return /* @__PURE__ */ jsxs("div", { className: "rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-card)] p-5 space-y-3 hover:border-[var(--color-eu-blue-lighter)] transition-colors", children: [
+    /* @__PURE__ */ jsxs("div", { className: "flex items-start justify-between gap-3", children: [
+      /* @__PURE__ */ jsxs("div", { children: [
+        /* @__PURE__ */ jsx("h3", { className: "font-semibold text-[var(--color-text-primary)] text-sm", children: profile.orgName }),
+        /* @__PURE__ */ jsx("p", { className: "text-xs text-[var(--color-text-secondary)] mt-0.5", children: profile.country })
+      ] }),
+      /* @__PURE__ */ jsx("span", { className: `shrink-0 text-xs px-2 py-0.5 rounded-full font-medium ${profile.type === "offer" ? "bg-green-500/10 text-green-400 border border-green-500/20" : "bg-blue-500/10 text-blue-400 border border-blue-500/20"}`, children: profile.type === "offer" ? "Offering" : "Seeking" })
+    ] }),
+    profile.callReference && /* @__PURE__ */ jsxs("p", { className: "text-xs text-[var(--color-text-secondary)]", children: [
+      "Call: ",
+      /* @__PURE__ */ jsx("span", { className: "font-mono text-[var(--color-text-primary)]", children: profile.callReference })
+    ] }),
+    /* @__PURE__ */ jsx("p", { className: "text-sm text-[var(--color-text-secondary)] leading-relaxed line-clamp-3", children: profile.summary }),
+    profile.expertise.length > 0 && /* @__PURE__ */ jsx("div", { className: "flex flex-wrap gap-1.5", children: profile.expertise.slice(0, 5).map((tag) => /* @__PURE__ */ jsx("span", { className: "text-xs px-2 py-0.5 rounded-full bg-[var(--color-bg-input)] text-[var(--color-text-secondary)] border border-[var(--color-border)]", children: tag }, tag)) }),
+    profile.cordisEnriched && profile.cordisProjectCount !== void 0 && /* @__PURE__ */ jsxs("div", { className: "pt-2 border-t border-[var(--color-border)] space-y-1", children: [
+      /* @__PURE__ */ jsxs("p", { className: "text-xs text-[var(--color-text-secondary)]", children: [
+        /* @__PURE__ */ jsx("span", { className: "font-semibold text-[var(--color-text-primary)]", children: profile.cordisProjectCount }),
+        " EU projects in CORDIS"
+      ] }),
+      profile.cordisRecentProjects && profile.cordisRecentProjects.length > 0 && /* @__PURE__ */ jsx("ul", { className: "text-xs text-[var(--color-text-secondary)] space-y-0.5 list-disc list-inside", children: profile.cordisRecentProjects.map((t, i) => /* @__PURE__ */ jsx("li", { className: "truncate", children: t }, i)) })
+    ] }),
+    /* @__PURE__ */ jsx(
+      "a",
+      {
+        href: profile.ftPortalUrl,
+        target: "_blank",
+        rel: "noopener noreferrer",
+        className: "inline-flex items-center gap-1 text-xs font-medium text-[var(--color-eu-blue-lighter)] hover:underline",
+        children: "View on F&T Portal →"
+      }
+    )
+  ] });
+}
+function PartnerSearchPage() {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const { data: countries = [] } = useCountries();
+  const [filters, setFilters] = useState({
+    callId: searchParams.get("callId") ?? "",
+    cluster: searchParams.get("cluster") ?? void 0,
+    country: searchParams.get("country") ?? void 0,
+    page: parseInt(searchParams.get("page") ?? "1", 10)
+  });
+  const [callInput, setCallInput] = useState(filters.callId ?? "");
+  const { data, isLoading, error } = usePartnerSearch(filters);
+  useEffect(() => {
+    document.title = "Partner Search — CORDIS Explorer";
+  }, []);
+  function applyFilters(updates) {
+    const next = { ...filters, ...updates, page: 1 };
+    setFilters(next);
+    const params = {};
+    if (next.callId) params.callId = next.callId;
+    if (next.cluster) params.cluster = next.cluster;
+    if (next.country) params.country = next.country;
+    if (next.page > 1) params.page = String(next.page);
+    setSearchParams(params, { replace: true });
+  }
+  return /* @__PURE__ */ jsxs("div", { className: "max-w-6xl mx-auto px-4 py-12", children: [
+    /* @__PURE__ */ jsxs("div", { className: "mb-8", children: [
+      /* @__PURE__ */ jsx("h1", { className: "text-2xl font-bold text-[var(--color-text-primary)] mb-2", children: "Partner Search Hub" }),
+      /* @__PURE__ */ jsx("p", { className: "text-[var(--color-text-secondary)] text-sm", children: "Find organisations actively seeking or offering EU research partnership opportunities via the F&T Portal, enriched with their CORDIS project track record." })
+    ] }),
+    /* @__PURE__ */ jsxs("div", { className: "space-y-3 mb-8 p-4 rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-card)]", children: [
+      /* @__PURE__ */ jsxs("div", { className: "flex flex-wrap gap-3 items-end", children: [
+        /* @__PURE__ */ jsx("div", { className: "flex-1 min-w-[200px]", children: /* @__PURE__ */ jsx(
+          "input",
+          {
+            type: "text",
+            placeholder: "Call reference (e.g. HORIZON-CL4-2026-TWIN-01)",
+            value: callInput,
+            onChange: (e) => setCallInput(e.target.value),
+            onKeyDown: (e) => {
+              if (e.key === "Enter") applyFilters({ callId: callInput });
+            },
+            className: "w-full px-3 py-2 rounded-lg bg-[var(--color-bg-input)] border border-[var(--color-border)] text-sm text-[var(--color-text-primary)] focus:outline-none focus:border-[var(--color-eu-blue-lighter)]"
+          }
+        ) }),
+        /* @__PURE__ */ jsxs(
+          "select",
+          {
+            value: filters.country ?? "",
+            onChange: (e) => applyFilters({ country: e.target.value || void 0 }),
+            className: "px-3 py-2 rounded-lg bg-[var(--color-bg-input)] border border-[var(--color-border)] text-sm text-[var(--color-text-primary)] focus:outline-none",
+            children: [
+              /* @__PURE__ */ jsx("option", { value: "", children: "All countries" }),
+              countries.map((c) => /* @__PURE__ */ jsx("option", { value: c, children: c }, c))
+            ]
+          }
+        ),
+        /* @__PURE__ */ jsx(
+          "button",
+          {
+            onClick: () => applyFilters({ callId: callInput }),
+            className: "px-4 py-2 rounded-lg bg-[var(--color-eu-blue)] text-white text-sm font-medium hover:opacity-90 transition-opacity",
+            children: "Search"
+          }
+        )
+      ] }),
+      /* @__PURE__ */ jsx(
+        ClusterBubbles,
+        {
+          selected: filters.cluster ?? null,
+          onChange: (v) => applyFilters({ cluster: v ?? void 0 }),
+          label: "Filter by Horizon Europe Cluster"
+        }
+      )
+    ] }),
+    (data == null ? void 0 : data.ftUnavailable) && /* @__PURE__ */ jsxs("div", { className: "mb-6 p-4 rounded-xl bg-amber-500/10 border border-amber-500/30 text-sm", children: [
+      /* @__PURE__ */ jsx("p", { className: "text-amber-300 font-medium mb-1", children: "F&T Portal API unavailable" }),
+      /* @__PURE__ */ jsxs("p", { className: "text-[var(--color-text-secondary)]", children: [
+        "Browse partnership requests directly on the",
+        " ",
+        /* @__PURE__ */ jsx(
+          "a",
+          {
+            href: "https://ec.europa.eu/research/participants/portal/desktop/en/organisations/partner-search.html",
+            target: "_blank",
+            rel: "noopener noreferrer",
+            className: "text-amber-300 underline",
+            children: "F&T Portal partner search"
+          }
+        ),
+        "."
+      ] })
+    ] }),
+    isLoading && /* @__PURE__ */ jsx(Spinner, {}),
+    error && /* @__PURE__ */ jsx("p", { className: "text-red-400 text-sm", children: error.message }),
+    !isLoading && data && !data.ftUnavailable && /* @__PURE__ */ jsxs(Fragment, { children: [
+      data.callTitle && /* @__PURE__ */ jsxs("p", { className: "text-sm text-[var(--color-text-secondary)] mb-4", children: [
+        "Call: ",
+        /* @__PURE__ */ jsx("span", { className: "text-[var(--color-text-primary)] font-medium", children: data.callTitle })
+      ] }),
+      data.profiles.length === 0 ? /* @__PURE__ */ jsx(
+        EmptyState,
+        {
+          title: "No active partnership requests found",
+          description: "No profiles match your filters. Post yours on the F&T Portal to get started."
+        }
+      ) : /* @__PURE__ */ jsxs(Fragment, { children: [
+        /* @__PURE__ */ jsx("div", { className: "grid grid-cols-1 md:grid-cols-2 gap-4 mb-8", children: data.profiles.map((p) => /* @__PURE__ */ jsx(PartnerCard, { profile: p }, p.id)) }),
+        /* @__PURE__ */ jsx(
+          Pagination,
+          {
+            page: filters.page,
+            pageSize: PAGE_SIZE$2,
+            resultCount: data.profiles.length,
+            onPageChange: (p) => {
+              const next = { ...filters, page: p };
+              setFilters(next);
+              setSearchParams(
+                Object.fromEntries(
+                  Object.entries({
+                    callId: next.callId,
+                    cluster: next.cluster,
+                    country: next.country,
+                    page: String(p)
+                  }).filter(([, v]) => v)
+                ),
+                { replace: true }
+              );
+            }
+          }
+        )
+      ] })
+    ] })
+  ] });
 }
 const PLANS = [
   {
@@ -4784,7 +5367,7 @@ function getVal(b, key) {
   var _a;
   return (_a = b[key]) == null ? void 0 : _a.value;
 }
-function formatDate(iso) {
+function formatDate$1(iso) {
   if (!iso) return null;
   try {
     return new Date(iso).getFullYear().toString();
@@ -5436,7 +6019,7 @@ function KnowledgeGraphPage() {
                           p.acronym && /* @__PURE__ */ jsx("p", { className: "text-[10px] font-bold mb-0.5", style: { color: "#16a34a" }, children: p.acronym }),
                           /* @__PURE__ */ jsx("p", { className: "text-xs leading-snug font-medium", style: { color: "#222222" }, children: p.title.length > 60 ? p.title.slice(0, 58) + "…" : p.title })
                         ] }),
-                        p.startDate && /* @__PURE__ */ jsx("span", { className: "text-[10px] shrink-0 mt-0.5 font-medium", style: { color: "#aaaaaa" }, children: formatDate(p.startDate) })
+                        p.startDate && /* @__PURE__ */ jsx("span", { className: "text-[10px] shrink-0 mt-0.5 font-medium", style: { color: "#aaaaaa" }, children: formatDate$1(p.startDate) })
                       ] }),
                       p.projectId && /* @__PURE__ */ jsx(
                         Link,
@@ -5474,7 +6057,7 @@ function KnowledgeGraphPage() {
                       /* @__PURE__ */ jsx("line", { x1: "3", y1: "10", x2: "21", y2: "10", strokeWidth: 2 })
                     ] }),
                     "Started ",
-                    formatDate(liveSelected.meta.startDate)
+                    formatDate$1(liveSelected.meta.startDate)
                   ] }),
                   (() => {
                     const cnt = connectedNodes(liveSelected.id, "org", nodes, edges).length;
@@ -5529,6 +6112,520 @@ function KnowledgeGraphPage() {
           ]
         }
       )
+    ] })
+  ] });
+}
+function useOrgSummary(orgName) {
+  return useQuery({
+    queryKey: ["orgSummary", orgName],
+    queryFn: async () => {
+      var _a, _b;
+      const data = await executeSparql(buildOrgSummaryQuery(orgName));
+      const b = data.results.bindings[0];
+      return {
+        orgName,
+        country: (_a = b == null ? void 0 : b.countryName) == null ? void 0 : _a.value,
+        projectCount: parseInt(((_b = b == null ? void 0 : b.projectCount) == null ? void 0 : _b.value) ?? "0", 10)
+      };
+    },
+    enabled: !!orgName,
+    staleTime: 1e3 * 60 * 30
+  });
+}
+function useOrgProjects(orgName) {
+  return useQuery({
+    queryKey: ["orgProjects", orgName],
+    queryFn: async () => {
+      const data = await executeSparql(buildOrgProjectsQuery(orgName));
+      return data.results.bindings.map((b) => {
+        var _a, _b, _c, _d, _e, _f;
+        return {
+          title: ((_a = b.title) == null ? void 0 : _a.value) ?? "",
+          acronym: (_b = b.acronym) == null ? void 0 : _b.value,
+          identifier: (_c = b.identifier) == null ? void 0 : _c.value,
+          startDate: (_e = (_d = b.startDate) == null ? void 0 : _d.value) == null ? void 0 : _e.slice(0, 10),
+          role: (_f = b.roleLabel) == null ? void 0 : _f.value
+        };
+      });
+    },
+    enabled: !!orgName,
+    staleTime: 1e3 * 60 * 30
+  });
+}
+function useOrgCoApplicants(orgName) {
+  return useQuery({
+    queryKey: ["orgCoApplicants", orgName],
+    queryFn: async () => {
+      const data = await executeSparql(buildOrgCoApplicantsQuery(orgName));
+      return data.results.bindings.map((b) => {
+        var _a, _b;
+        return {
+          orgName: ((_a = b.coOrgName) == null ? void 0 : _a.value) ?? "",
+          sharedCount: parseInt(((_b = b.sharedCount) == null ? void 0 : _b.value) ?? "0", 10)
+        };
+      });
+    },
+    enabled: !!orgName,
+    staleTime: 1e3 * 60 * 30
+  });
+}
+function OrgPage() {
+  const { encodedName } = useParams();
+  const orgName = decodeURIComponent(encodedName ?? "");
+  useEffect(() => {
+    document.title = `${orgName} — CORDIS Explorer`;
+  }, [orgName]);
+  const { data: summary, isLoading: summaryLoading } = useOrgSummary(orgName);
+  const { data: projects = [], isLoading: projectsLoading } = useOrgProjects(orgName);
+  const { data: coApplicants = [], isLoading: coLoading } = useOrgCoApplicants(orgName);
+  if (!orgName) {
+    return /* @__PURE__ */ jsx("p", { className: "p-8 text-[var(--color-text-secondary)]", children: "No organisation specified." });
+  }
+  return /* @__PURE__ */ jsxs("div", { className: "max-w-5xl mx-auto px-4 py-12 space-y-10", children: [
+    /* @__PURE__ */ jsxs("div", { children: [
+      /* @__PURE__ */ jsx("h1", { className: "text-2xl font-bold text-[var(--color-text-primary)] mb-1", children: orgName }),
+      summaryLoading ? /* @__PURE__ */ jsx(Spinner, {}) : summary && /* @__PURE__ */ jsxs("div", { className: "flex flex-wrap gap-6 mt-4", children: [
+        /* @__PURE__ */ jsxs("div", { children: [
+          /* @__PURE__ */ jsx("p", { className: "text-3xl font-bold text-[var(--color-eu-blue-lighter)]", children: summary.projectCount }),
+          /* @__PURE__ */ jsx("p", { className: "text-xs text-[var(--color-text-secondary)] mt-1", children: "EU Projects" })
+        ] }),
+        summary.country && /* @__PURE__ */ jsxs("div", { children: [
+          /* @__PURE__ */ jsx("p", { className: "text-xl font-semibold text-[var(--color-text-primary)]", children: summary.country }),
+          /* @__PURE__ */ jsx("p", { className: "text-xs text-[var(--color-text-secondary)] mt-1", children: "Country" })
+        ] })
+      ] })
+    ] }),
+    /* @__PURE__ */ jsxs("div", { children: [
+      /* @__PURE__ */ jsx("h2", { className: "text-lg font-semibold text-[var(--color-text-primary)] mb-4", children: "Recent Projects" }),
+      projectsLoading ? /* @__PURE__ */ jsx(Spinner, {}) : /* @__PURE__ */ jsxs("div", { className: "divide-y divide-[var(--color-border)]", children: [
+        projects.map((p, i) => /* @__PURE__ */ jsxs("div", { className: "py-3 flex items-start justify-between gap-4", children: [
+          /* @__PURE__ */ jsxs("div", { children: [
+            p.identifier ? /* @__PURE__ */ jsxs(
+              Link,
+              {
+                to: `/project/${encodeURIComponent(p.identifier)}`,
+                className: "text-sm font-medium text-[var(--color-eu-blue-lighter)] hover:underline",
+                children: [
+                  p.acronym ? `${p.acronym} — ` : "",
+                  p.title
+                ]
+              }
+            ) : /* @__PURE__ */ jsxs("p", { className: "text-sm text-[var(--color-text-primary)]", children: [
+              p.acronym ? `${p.acronym} — ` : "",
+              p.title
+            ] }),
+            p.role && /* @__PURE__ */ jsx("p", { className: "text-xs text-[var(--color-text-secondary)] mt-0.5", children: p.role })
+          ] }),
+          p.startDate && /* @__PURE__ */ jsx("span", { className: "shrink-0 text-xs text-[var(--color-text-secondary)]", children: p.startDate.slice(0, 4) })
+        ] }, i)),
+        projects.length === 0 && /* @__PURE__ */ jsx("p", { className: "py-4 text-sm text-[var(--color-text-secondary)]", children: "No projects found." })
+      ] })
+    ] }),
+    /* @__PURE__ */ jsxs("div", { children: [
+      /* @__PURE__ */ jsx("h2", { className: "text-lg font-semibold text-[var(--color-text-primary)] mb-4", children: "Frequent Partners" }),
+      coLoading ? /* @__PURE__ */ jsx(Spinner, {}) : /* @__PURE__ */ jsxs("div", { className: "grid grid-cols-1 sm:grid-cols-2 gap-3", children: [
+        coApplicants.map((c, i) => /* @__PURE__ */ jsxs(
+          Link,
+          {
+            to: `/org/${encodeURIComponent(c.orgName)}`,
+            className: "flex items-center justify-between p-3 rounded-lg border border-[var(--color-border)] bg-[var(--color-bg-card)] hover:border-[var(--color-eu-blue-lighter)] transition-colors",
+            children: [
+              /* @__PURE__ */ jsx("span", { className: "text-sm text-[var(--color-text-primary)] truncate", children: c.orgName }),
+              /* @__PURE__ */ jsxs("span", { className: "shrink-0 text-xs text-[var(--color-text-secondary)] ml-2", children: [
+                c.sharedCount,
+                " shared"
+              ] })
+            ]
+          },
+          i
+        )),
+        coApplicants.length === 0 && /* @__PURE__ */ jsx("p", { className: "text-sm text-[var(--color-text-secondary)]", children: "No co-applicants found." })
+      ] })
+    ] }),
+    /* @__PURE__ */ jsx("div", { children: /* @__PURE__ */ jsx(Link, { to: "/search", className: "text-sm text-[var(--color-eu-blue-lighter)] hover:underline", children: "← Back to search" }) })
+  ] });
+}
+async function fetchEvents(filters) {
+  const params = new URLSearchParams();
+  if (filters.cluster) params.set("cluster", filters.cluster);
+  if (filters.country) params.set("country", filters.country);
+  params.set("page", String(filters.page));
+  const resp = await fetch(`/api/events?${params}`);
+  if (!resp.ok) throw new Error(`Events fetch failed: ${resp.status}`);
+  return resp.json();
+}
+function useEvents(filters) {
+  return useQuery({
+    queryKey: ["events", filters],
+    queryFn: () => fetchEvents(filters),
+    placeholderData: keepPreviousData,
+    staleTime: 1e3 * 60 * 15
+  });
+}
+const PAGE_SIZE$1 = 20;
+function formatDate(iso) {
+  if (!iso) return "";
+  try {
+    return new Date(iso).toLocaleDateString("en-GB", {
+      day: "numeric",
+      month: "short",
+      year: "numeric"
+    });
+  } catch {
+    return iso;
+  }
+}
+function EventsPage() {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const { data: countries = [] } = useCountries();
+  const [filters, setFilters] = useState({
+    cluster: searchParams.get("cluster") ?? void 0,
+    country: searchParams.get("country") ?? void 0,
+    page: parseInt(searchParams.get("page") ?? "1", 10)
+  });
+  useEffect(() => {
+    document.title = "Brokerage Events — CORDIS Explorer";
+  }, []);
+  const { data, isLoading, error } = useEvents(filters);
+  function applyFilters(updates) {
+    const next = { ...filters, ...updates, page: 1 };
+    setFilters(next);
+    const params = {};
+    if (next.cluster) params.cluster = next.cluster;
+    if (next.country) params.country = next.country;
+    if (next.page > 1) params.page = String(next.page);
+    setSearchParams(params, { replace: true });
+  }
+  return /* @__PURE__ */ jsxs("div", { className: "max-w-5xl mx-auto px-4 py-12", children: [
+    /* @__PURE__ */ jsxs("div", { className: "mb-8", children: [
+      /* @__PURE__ */ jsx("h1", { className: "text-2xl font-bold text-[var(--color-text-primary)] mb-2", children: "Brokerage Events" }),
+      /* @__PURE__ */ jsx("p", { className: "text-sm text-[var(--color-text-secondary)]", children: "EU research networking and brokerage events from the Enterprise Europe Network (EEN). Find partnership opportunities, matchmaking sessions, and consortium-building events." })
+    ] }),
+    /* @__PURE__ */ jsxs("div", { className: "space-y-3 mb-8 p-4 rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-card)]", children: [
+      /* @__PURE__ */ jsx("div", { className: "flex flex-wrap gap-3 items-end", children: /* @__PURE__ */ jsxs(
+        "select",
+        {
+          value: filters.country ?? "",
+          onChange: (e) => applyFilters({ country: e.target.value || void 0 }),
+          className: "px-3 py-2 rounded-lg bg-[var(--color-bg-input)] border border-[var(--color-border)] text-sm text-[var(--color-text-primary)] focus:outline-none",
+          children: [
+            /* @__PURE__ */ jsx("option", { value: "", children: "All countries" }),
+            countries.map((c) => /* @__PURE__ */ jsx("option", { value: c, children: c }, c))
+          ]
+        }
+      ) }),
+      /* @__PURE__ */ jsx(
+        ClusterBubbles,
+        {
+          selected: filters.cluster ?? null,
+          onChange: (v) => applyFilters({ cluster: v ?? void 0 }),
+          label: "Filter by Horizon Europe Cluster"
+        }
+      )
+    ] }),
+    isLoading && /* @__PURE__ */ jsx(Spinner, {}),
+    error && /* @__PURE__ */ jsxs("div", { className: "p-4 rounded-xl bg-amber-500/10 border border-amber-500/30 text-sm text-amber-300", children: [
+      "Could not load events.",
+      " ",
+      /* @__PURE__ */ jsx(
+        "a",
+        {
+          href: "https://een.ec.europa.eu/events",
+          target: "_blank",
+          rel: "noopener noreferrer",
+          className: "underline",
+          children: "Browse on een.ec.europa.eu →"
+        }
+      )
+    ] }),
+    !isLoading && data && /* @__PURE__ */ jsx(Fragment, { children: data.events.length === 0 ? /* @__PURE__ */ jsx(
+      EmptyState,
+      {
+        title: "No events found",
+        description: "Try different filters, or browse events directly on the EEN website: een.ec.europa.eu/events"
+      }
+    ) : /* @__PURE__ */ jsxs(Fragment, { children: [
+      /* @__PURE__ */ jsx("div", { className: "space-y-4 mb-8", children: data.events.map((ev) => /* @__PURE__ */ jsxs(
+        "div",
+        {
+          className: "rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-card)] p-5 hover:border-[var(--color-eu-blue-lighter)] transition-colors",
+          children: [
+            /* @__PURE__ */ jsxs("div", { className: "flex items-start justify-between gap-4", children: [
+              /* @__PURE__ */ jsx("h3", { className: "font-semibold text-[var(--color-text-primary)] text-sm", children: ev.title }),
+              /* @__PURE__ */ jsx("span", { className: "shrink-0 text-xs text-[var(--color-text-secondary)] whitespace-nowrap", children: formatDate(ev.startDate) })
+            ] }),
+            (ev.city || ev.country) && /* @__PURE__ */ jsxs("p", { className: "text-xs text-[var(--color-text-secondary)] mt-1", children: [
+              "📍 ",
+              [ev.city, ev.country].filter(Boolean).join(", ")
+            ] }),
+            ev.description && /* @__PURE__ */ jsx("p", { className: "text-sm text-[var(--color-text-secondary)] mt-2 leading-relaxed line-clamp-3", children: ev.description.replace(/<[^>]+>/g, " ").trim() }),
+            ev.registrationUrl && /* @__PURE__ */ jsx(
+              "a",
+              {
+                href: ev.registrationUrl,
+                target: "_blank",
+                rel: "noopener noreferrer",
+                className: "inline-flex items-center gap-1 text-xs font-medium text-[var(--color-eu-blue-lighter)] hover:underline mt-3",
+                children: "Register / Learn more →"
+              }
+            )
+          ]
+        },
+        ev.id
+      )) }),
+      /* @__PURE__ */ jsx(
+        Pagination,
+        {
+          page: filters.page,
+          pageSize: PAGE_SIZE$1,
+          resultCount: data.events.length,
+          onPageChange: (p) => {
+            const next = { ...filters, page: p };
+            setFilters(next);
+            const params = {};
+            if (next.cluster) params.cluster = next.cluster;
+            if (next.country) params.country = next.country;
+            params.page = String(p);
+            setSearchParams(params, { replace: true });
+          }
+        }
+      )
+    ] }) })
+  ] });
+}
+function useMscaProjects(filters) {
+  return useQuery({
+    queryKey: ["mscaProjects", filters],
+    queryFn: async () => {
+      const data = await executeSparql(
+        buildMscaProjectSearchQuery(filters.keyword, filters.mscaType, filters.page, filters.pageSize)
+      );
+      return data.results.bindings.map((b) => {
+        var _a, _b, _c, _d, _e, _f, _g, _h;
+        return {
+          uri: ((_a = b.project) == null ? void 0 : _a.value) ?? "",
+          title: ((_b = b.title) == null ? void 0 : _b.value) ?? "",
+          acronym: (_c = b.acronym) == null ? void 0 : _c.value,
+          identifier: (_d = b.identifier) == null ? void 0 : _d.value,
+          startDate: (_f = (_e = b.startDate) == null ? void 0 : _e.value) == null ? void 0 : _f.slice(0, 10),
+          countries: ((_g = b.countryName) == null ? void 0 : _g.value) ? [b.countryName.value] : [],
+          topicLabel: (_h = b.mscaLabel) == null ? void 0 : _h.value
+        };
+      });
+    },
+    placeholderData: keepPreviousData
+  });
+}
+function useMscaSupervisors(researchArea) {
+  return useQuery({
+    queryKey: ["mscaSupervisors", researchArea],
+    queryFn: async () => {
+      const data = await executeSparql(buildMscaSupervisorSearchQuery(researchArea));
+      return data.results.bindings.map((b) => {
+        var _a, _b, _c, _d;
+        return {
+          orgName: ((_a = b.orgName) == null ? void 0 : _a.value) ?? "",
+          country: (_b = b.countryName) == null ? void 0 : _b.value,
+          mscaProjectCount: parseInt(((_c = b.mscaProjectCount) == null ? void 0 : _c.value) ?? "0", 10),
+          projectTitles: (((_d = b.projectTitles) == null ? void 0 : _d.value) ?? "").split("||").filter(Boolean).slice(0, 3)
+        };
+      });
+    },
+    enabled: researchArea.length >= 3,
+    staleTime: 1e3 * 60 * 30
+  });
+}
+const PAGE_SIZE = 20;
+const MSCA_TYPES = [
+  { value: "all", label: "All MSCA" },
+  { value: "PF", label: "Postdoctoral Fellowships" },
+  { value: "DN", label: "Doctoral Networks" },
+  { value: "SE", label: "Staff Exchanges" },
+  { value: "IF", label: "Individual Fellowships (H2020)" },
+  { value: "COFUND", label: "COFUND" }
+];
+function MscaPage() {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [activeTab, setActiveTab] = useState(
+    searchParams.get("tab") ?? "projects"
+  );
+  const [keyword, setKeyword] = useState(searchParams.get("q") ?? "");
+  const [inputValue, setInputValue] = useState(keyword);
+  const [mscaType, setMscaType] = useState(
+    searchParams.get("type") ?? "all"
+  );
+  const [page, setPage] = useState(parseInt(searchParams.get("page") ?? "1", 10));
+  const [supervisorArea, setSupervisorArea] = useState(searchParams.get("area") ?? "");
+  const [supervisorInput, setSupervisorInput] = useState(supervisorArea);
+  useEffect(() => {
+    document.title = "MSCA Search — CORDIS Explorer";
+  }, []);
+  const { data: projects = [], isLoading: projectsLoading } = useMscaProjects({
+    keyword,
+    mscaType,
+    page,
+    pageSize: PAGE_SIZE
+  });
+  const { data: supervisors = [], isLoading: supervisorsLoading } = useMscaSupervisors(supervisorArea);
+  function search() {
+    setKeyword(inputValue);
+    setPage(1);
+    const params = { tab: activeTab };
+    if (inputValue) params.q = inputValue;
+    if (mscaType !== "all") params.type = mscaType;
+    setSearchParams(params, { replace: true });
+  }
+  function searchSupervisors() {
+    setSupervisorArea(supervisorInput);
+    setSearchParams({ tab: "supervisors", area: supervisorInput }, { replace: true });
+  }
+  return /* @__PURE__ */ jsxs("div", { className: "max-w-5xl mx-auto px-4 py-12", children: [
+    /* @__PURE__ */ jsxs("div", { className: "mb-8", children: [
+      /* @__PURE__ */ jsx("h1", { className: "text-2xl font-bold text-[var(--color-text-primary)] mb-2", children: "MSCA Research Explorer" }),
+      /* @__PURE__ */ jsx("p", { className: "text-sm text-[var(--color-text-secondary)]", children: "Search Marie Skłodowska-Curie Actions projects, and discover host organisations and supervisors by research area." })
+    ] }),
+    /* @__PURE__ */ jsx("div", { className: "flex gap-1 mb-6 p-1 rounded-lg bg-[var(--color-bg-card)] border border-[var(--color-border)] w-fit", children: ["projects", "supervisors"].map((tab) => /* @__PURE__ */ jsx(
+      "button",
+      {
+        onClick: () => {
+          setActiveTab(tab);
+          setSearchParams({ tab }, { replace: true });
+        },
+        className: `px-4 py-2 rounded-md text-sm font-medium transition-all ${activeTab === tab ? "bg-[var(--color-eu-blue)] text-white" : "text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]"}`,
+        children: tab === "projects" ? "Projects" : "Supervisors & Hosts"
+      },
+      tab
+    )) }),
+    activeTab === "projects" && /* @__PURE__ */ jsxs(Fragment, { children: [
+      /* @__PURE__ */ jsxs("div", { className: "flex gap-3 mb-4", children: [
+        /* @__PURE__ */ jsx(
+          "input",
+          {
+            type: "text",
+            placeholder: "Search MSCA projects (e.g. quantum computing, RNA biology…)",
+            value: inputValue,
+            onChange: (e) => setInputValue(e.target.value),
+            onKeyDown: (e) => {
+              if (e.key === "Enter") search();
+            },
+            className: "flex-1 px-4 py-2 rounded-lg bg-[var(--color-bg-input)] border border-[var(--color-border)] text-sm text-[var(--color-text-primary)] focus:outline-none focus:border-[var(--color-eu-blue-lighter)]"
+          }
+        ),
+        /* @__PURE__ */ jsx(
+          "button",
+          {
+            onClick: search,
+            className: "px-5 py-2 rounded-lg bg-[var(--color-eu-blue)] text-white text-sm font-medium hover:opacity-90 transition-opacity",
+            children: "Search"
+          }
+        )
+      ] }),
+      /* @__PURE__ */ jsx("div", { className: "flex flex-wrap gap-2 mb-6", children: MSCA_TYPES.map((t) => /* @__PURE__ */ jsx(
+        "button",
+        {
+          onClick: () => setMscaType(t.value),
+          className: `px-3 py-1 rounded-full text-xs font-medium border transition-all ${mscaType === t.value ? "bg-[var(--color-eu-blue)] text-white border-transparent" : "text-[var(--color-text-secondary)] border-[var(--color-border)] hover:border-[var(--color-eu-blue-lighter)]"}`,
+          children: t.label
+        },
+        t.value
+      )) }),
+      projectsLoading && /* @__PURE__ */ jsx(Spinner, {}),
+      !projectsLoading && projects.length === 0 && /* @__PURE__ */ jsx(
+        EmptyState,
+        {
+          title: "No MSCA projects found",
+          description: "Try different keywords or select a different MSCA type."
+        }
+      ),
+      !projectsLoading && projects.length > 0 && /* @__PURE__ */ jsxs(Fragment, { children: [
+        /* @__PURE__ */ jsx("div", { className: "divide-y divide-[var(--color-border)] mb-8", children: projects.map((p, i) => /* @__PURE__ */ jsx("div", { className: "py-4", children: /* @__PURE__ */ jsxs("div", { className: "flex items-start justify-between gap-4", children: [
+          /* @__PURE__ */ jsxs("div", { className: "flex-1 min-w-0", children: [
+            p.identifier ? /* @__PURE__ */ jsxs(
+              Link,
+              {
+                to: `/project/${encodeURIComponent(p.identifier)}`,
+                className: "text-sm font-medium text-[var(--color-eu-blue-lighter)] hover:underline",
+                children: [
+                  p.acronym ? `${p.acronym} — ` : "",
+                  p.title
+                ]
+              }
+            ) : /* @__PURE__ */ jsxs("p", { className: "text-sm font-medium text-[var(--color-text-primary)]", children: [
+              p.acronym ? `${p.acronym} — ` : "",
+              p.title
+            ] }),
+            p.countries.length > 0 && /* @__PURE__ */ jsx("p", { className: "text-xs text-[var(--color-text-secondary)] mt-0.5", children: p.countries.join(", ") })
+          ] }),
+          /* @__PURE__ */ jsxs("div", { className: "shrink-0 text-right", children: [
+            p.startDate && /* @__PURE__ */ jsx("p", { className: "text-xs text-[var(--color-text-secondary)]", children: p.startDate.slice(0, 4) }),
+            p.topicLabel && /* @__PURE__ */ jsx("span", { className: "text-xs font-mono text-[var(--color-text-secondary)] block mt-0.5 max-w-[160px] truncate", children: p.topicLabel })
+          ] })
+        ] }) }, i)) }),
+        /* @__PURE__ */ jsx(
+          Pagination,
+          {
+            page,
+            pageSize: PAGE_SIZE,
+            resultCount: projects.length,
+            onPageChange: (p) => {
+              setPage(p);
+              window.scrollTo(0, 0);
+            }
+          }
+        )
+      ] })
+    ] }),
+    activeTab === "supervisors" && /* @__PURE__ */ jsxs(Fragment, { children: [
+      /* @__PURE__ */ jsxs("div", { className: "flex gap-3 mb-6", children: [
+        /* @__PURE__ */ jsx(
+          "input",
+          {
+            type: "text",
+            placeholder: "Research area (e.g. machine learning, proteomics, urban planning…)",
+            value: supervisorInput,
+            onChange: (e) => setSupervisorInput(e.target.value),
+            onKeyDown: (e) => {
+              if (e.key === "Enter") searchSupervisors();
+            },
+            className: "flex-1 px-4 py-2 rounded-lg bg-[var(--color-bg-input)] border border-[var(--color-border)] text-sm text-[var(--color-text-primary)] focus:outline-none focus:border-[var(--color-eu-blue-lighter)]"
+          }
+        ),
+        /* @__PURE__ */ jsx(
+          "button",
+          {
+            onClick: searchSupervisors,
+            className: "px-5 py-2 rounded-lg bg-[var(--color-eu-blue)] text-white text-sm font-medium hover:opacity-90 transition-opacity",
+            children: "Find Hosts"
+          }
+        )
+      ] }),
+      supervisorsLoading && /* @__PURE__ */ jsx(Spinner, {}),
+      !supervisorsLoading && supervisors.length === 0 && supervisorArea.length >= 3 && /* @__PURE__ */ jsx(
+        EmptyState,
+        {
+          title: "No host organisations found",
+          description: "Try a broader research area term."
+        }
+      ),
+      !supervisorsLoading && supervisors.length > 0 && /* @__PURE__ */ jsx("div", { className: "grid grid-cols-1 sm:grid-cols-2 gap-4", children: supervisors.map((org, i) => /* @__PURE__ */ jsxs(
+        Link,
+        {
+          to: `/org/${encodeURIComponent(org.orgName)}`,
+          className: "block p-4 rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-card)] hover:border-[var(--color-eu-blue-lighter)] transition-colors",
+          children: [
+            /* @__PURE__ */ jsxs("div", { className: "flex items-center justify-between gap-2 mb-2", children: [
+              /* @__PURE__ */ jsx("p", { className: "text-sm font-semibold text-[var(--color-text-primary)] truncate", children: org.orgName }),
+              /* @__PURE__ */ jsxs("span", { className: "shrink-0 text-xs text-[var(--color-eu-blue-lighter)] font-medium", children: [
+                org.mscaProjectCount,
+                " MSCA"
+              ] })
+            ] }),
+            org.country && /* @__PURE__ */ jsx("p", { className: "text-xs text-[var(--color-text-secondary)] mb-2", children: org.country }),
+            /* @__PURE__ */ jsx("ul", { className: "text-xs text-[var(--color-text-secondary)] space-y-0.5 list-disc list-inside", children: org.projectTitles.slice(0, 2).map((t, j) => /* @__PURE__ */ jsx("li", { className: "truncate", children: t }, j)) })
+          ]
+        },
+        i
+      )) })
     ] })
   ] });
 }
@@ -5659,9 +6756,13 @@ function App() {
       /* @__PURE__ */ jsx(Route, { path: "/admin", element: /* @__PURE__ */ jsx(AdminPage, {}) }),
       /* @__PURE__ */ jsx(Route, { path: "/map", element: /* @__PURE__ */ jsx(MapPage, {}) }),
       /* @__PURE__ */ jsx(Route, { path: "/partner-match", element: /* @__PURE__ */ jsx(PartnerMatchPage, {}) }),
+      /* @__PURE__ */ jsx(Route, { path: "/partner-search", element: /* @__PURE__ */ jsx(PartnerSearchPage, {}) }),
       /* @__PURE__ */ jsx(Route, { path: "/pricing", element: /* @__PURE__ */ jsx(CreditsPage, {}) }),
       /* @__PURE__ */ jsx(Route, { path: "/credits", element: /* @__PURE__ */ jsx(CreditsPage, {}) }),
-      /* @__PURE__ */ jsx(Route, { path: "/graph", element: /* @__PURE__ */ jsx(KnowledgeGraphPage, {}) })
+      /* @__PURE__ */ jsx(Route, { path: "/graph", element: /* @__PURE__ */ jsx(KnowledgeGraphPage, {}) }),
+      /* @__PURE__ */ jsx(Route, { path: "/org/:encodedName", element: /* @__PURE__ */ jsx(OrgPage, {}) }),
+      /* @__PURE__ */ jsx(Route, { path: "/events", element: /* @__PURE__ */ jsx(EventsPage, {}) }),
+      /* @__PURE__ */ jsx(Route, { path: "/msca", element: /* @__PURE__ */ jsx(MscaPage, {}) })
     ] }) }),
     /* @__PURE__ */ jsx(Footer, {}),
     showAuthModal && /* @__PURE__ */ jsx(AuthModal, {})
