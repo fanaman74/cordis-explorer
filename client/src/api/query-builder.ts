@@ -154,6 +154,31 @@ export function buildProjectSearchQuery(filters: SearchFilters): string {
     );
   }
 
+  // Action type filter — matched via funding scheme topic label
+  if (filters.actionType) {
+    const at = escapeString(filters.actionType.toUpperCase());
+    whereClauses.push(
+      '?project eurio:isFundedBy ?atGrant .',
+      '{ ?atGrant eurio:hasFundingSchemeTopic ?atTopic . } UNION { ?atGrant eurio:hasFundingSchemeCall ?atTopic . }',
+      '?atTopic rdfs:label ?atTopicLabel .',
+      `FILTER(CONTAINS(UCASE(?atTopicLabel), '-${at}-') || REGEXP(UCASE(?atTopicLabel), '-${at}$'))`,
+    );
+  }
+
+  // TRL filter — use optional EURIO TRL predicates
+  if (filters.trlMin != null || filters.trlMax != null) {
+    whereClauses.push(
+      'OPTIONAL { ?project eurio:isFundedBy ?trlGrant . ?trlGrant eurio:minTrl ?minTrl . }',
+      'OPTIONAL { ?project eurio:isFundedBy ?trlGrant2 . ?trlGrant2 eurio:maxTrl ?maxTrl . }',
+    );
+    if (filters.trlMin != null) {
+      whereClauses.push(`FILTER(!BOUND(?maxTrl) || ?maxTrl >= ${filters.trlMin})`);
+    }
+    if (filters.trlMax != null) {
+      whereClauses.push(`FILTER(!BOUND(?minTrl) || ?minTrl <= ${filters.trlMax})`);
+    }
+  }
+
   // Fetch topic/call code label for all projects (code-like = no spaces, e.g. HORIZON-EIC-2026-ACCELERATOR-01)
   whereClauses.push(
     'OPTIONAL {',

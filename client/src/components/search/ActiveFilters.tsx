@@ -21,6 +21,9 @@ export default function ActiveFilters({ filters, onRemove }: ActiveFiltersProps)
   if (filters.startDateTo) pills.push({ key: 'startDateTo', label: `To: ${filters.startDateTo}` });
   if (filters.status) pills.push({ key: 'status', label: filters.status });
   if (filters.managingInstitution) pills.push({ key: 'managingInstitution', label: `Inst: ${filters.managingInstitution}` });
+  if (filters.actionType) pills.push({ key: 'actionType', label: `Action: ${filters.actionType}` });
+  if (filters.trlMin != null) pills.push({ key: 'trlMin', label: `TRL ≥ ${filters.trlMin}` });
+  if (filters.trlMax != null) pills.push({ key: 'trlMax', label: `TRL ≤ ${filters.trlMax}` });
 
   if (pills.length === 0) return null;
 

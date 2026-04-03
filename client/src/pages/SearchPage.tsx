@@ -23,6 +23,9 @@ function filtersFromParams(params: URLSearchParams): SearchFilters {
     startDateTo: params.get('to') || undefined,
     status: (params.get('status') as SearchFilters['status']) || null,
     managingInstitution: params.get('inst') || undefined,
+    actionType: (params.get('actionType') as SearchFilters['actionType']) ?? null,
+    trlMin: params.get('trlMin') ? parseInt(params.get('trlMin')!, 10) : null,
+    trlMax: params.get('trlMax') ? parseInt(params.get('trlMax')!, 10) : null,
     page: parseInt(params.get('page') || '1', 10),
     pageSize: PAGE_SIZE,
   };
@@ -40,6 +43,9 @@ function filtersToParams(filters: SearchFilters): Record<string, string> {
   if (filters.startDateTo) params.to = filters.startDateTo;
   if (filters.status) params.status = filters.status;
   if (filters.managingInstitution) params.inst = filters.managingInstitution;
+  if (filters.actionType) params.actionType = filters.actionType;
+  if (filters.trlMin != null) params.trlMin = String(filters.trlMin);
+  if (filters.trlMax != null) params.trlMax = String(filters.trlMax);
   if (filters.page > 1) params.page = String(filters.page);
   return params;
 }
@@ -104,7 +110,12 @@ export default function SearchPage() {
   }
 
   function handleFilterChange(key: keyof SearchFilters, value: string | null) {
-    updateFilters({ [key]: value || undefined });
+    // Convert TRL string values to numbers
+    const numericFields: (keyof SearchFilters)[] = ['trlMin', 'trlMax'];
+    const parsedValue = numericFields.includes(key) && value !== null
+      ? parseInt(value, 10)
+      : value;
+    updateFilters({ [key]: parsedValue ?? undefined });
   }
 
   function handleRemoveFilter(key: keyof SearchFilters) {

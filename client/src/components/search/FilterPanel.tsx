@@ -84,6 +84,24 @@ export default function FilterPanel({ filters, onFilterChange }: FilterPanelProp
         onChange={(v) => onFilterChange('managingInstitution', v)}
         loading={institutionsLoading}
       />
+      <FilterSelect
+        label="Action Type"
+        value={filters.actionType ?? null}
+        options={['RIA', 'IA', 'CSA', 'ERC', 'MSCA']}
+        onChange={(v) => onFilterChange('actionType', v)}
+      />
+      <FilterSelect
+        label="Min TRL"
+        value={filters.trlMin != null ? String(filters.trlMin) : null}
+        options={['1','2','3','4','5','6','7','8','9']}
+        onChange={(v) => onFilterChange('trlMin', v)}
+      />
+      <FilterSelect
+        label="Max TRL"
+        value={filters.trlMax != null ? String(filters.trlMax) : null}
+        options={['1','2','3','4','5','6','7','8','9']}
+        onChange={(v) => onFilterChange('trlMax', v)}
+      />
       <div>
         <input
           type="text"

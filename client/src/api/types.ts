@@ -62,6 +62,9 @@ export interface SearchFilters {
   startDateTo?: string;
   status?: 'SIGNED' | 'CLOSED' | null;
   managingInstitution?: string;
+  actionType?: 'RIA' | 'IA' | 'CSA' | 'ERC' | 'MSCA' | null;
+  trlMin?: number | null; // 1–9
+  trlMax?: number | null; // 1–9
   page: number;
   pageSize: number;
 }
