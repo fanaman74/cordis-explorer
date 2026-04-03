@@ -14,6 +14,7 @@ import PartnerSearchPage from './pages/PartnerSearchPage';
 import CreditsPage from './pages/CreditsPage';
 import KnowledgeGraphPage from './pages/KnowledgeGraphPage';
 import OrgPage from './pages/OrgPage';
+import EventsPage from './pages/EventsPage';
 import AuthModal from './components/auth/AuthModal';
 import { useAuth } from './contexts/AuthContext';
 
@@ -39,6 +40,7 @@ export default function App() {
           <Route path="/credits" element={<CreditsPage />} />
           <Route path="/graph" element={<KnowledgeGraphPage />} />
           <Route path="/org/:encodedName" element={<OrgPage />} />
+          <Route path="/events" element={<EventsPage />} />
         </Routes>
       </main>
       <Footer />
