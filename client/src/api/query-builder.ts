@@ -484,3 +484,76 @@ export function buildCountQuery(filters: SearchFilters): string {
 
   return innerWhere;
 }
+
+/** Fetch summary stats for an org: project count, total EC contribution */
+export function buildOrgSummaryQuery(orgName: string): string {
+  const name = escapeString(orgName);
+  return `
+PREFIX eurio: <http://data.europa.eu/s66#>
+PREFIX xsd: <http://www.w3.org/2001/XMLSchema#>
+
+SELECT ?countryName
+       (COUNT(DISTINCT ?project) AS ?projectCount)
+WHERE {
+  ?org eurio:legalName '${name}' .
+  OPTIONAL {
+    ?org eurio:hasSite ?site .
+    ?site eurio:hasGeographicalLocation ?country .
+    ?country a eurio:Country .
+    ?country eurio:name ?countryName .
+  }
+  OPTIONAL {
+    ?project a eurio:Project .
+    ?project eurio:hasInvolvedParty ?role .
+    ?role eurio:isRoleOf ?org .
+  }
+}
+GROUP BY ?countryName
+  `.trim();
+}
+
+/** Fetch recent projects for an org */
+export function buildOrgProjectsQuery(orgName: string): string {
+  const name = escapeString(orgName);
+  return `
+PREFIX eurio: <http://data.europa.eu/s66#>
+
+SELECT DISTINCT ?title ?acronym ?identifier ?startDate ?roleLabel
+WHERE {
+  ?org eurio:legalName '${name}' .
+  ?project a eurio:Project .
+  ?project eurio:hasInvolvedParty ?role .
+  ?role eurio:isRoleOf ?org .
+  ?project eurio:title ?title .
+  OPTIONAL { ?project eurio:acronym ?acronym }
+  OPTIONAL { ?project eurio:identifier ?identifier }
+  OPTIONAL { ?project eurio:startDate ?startDate }
+  OPTIONAL { ?role eurio:roleLabel ?roleLabel }
+}
+ORDER BY DESC(?startDate)
+LIMIT 20
+  `.trim();
+}
+
+/** Fetch frequent co-applicant organisations */
+export function buildOrgCoApplicantsQuery(orgName: string): string {
+  const name = escapeString(orgName);
+  return `
+PREFIX eurio: <http://data.europa.eu/s66#>
+
+SELECT ?coOrgName (COUNT(DISTINCT ?project) AS ?sharedCount)
+WHERE {
+  ?org eurio:legalName '${name}' .
+  ?project a eurio:Project .
+  ?project eurio:hasInvolvedParty ?role1 .
+  ?role1 eurio:isRoleOf ?org .
+  ?project eurio:hasInvolvedParty ?role2 .
+  ?role2 eurio:isRoleOf ?coOrg .
+  ?coOrg eurio:legalName ?coOrgName .
+  FILTER(?coOrgName != '${name}')
+}
+GROUP BY ?coOrgName
+ORDER BY DESC(?sharedCount)
+LIMIT 10
+  `.trim();
+}

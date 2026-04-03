@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { usePartnerMatch } from '../hooks/usePartnerMatch';
 import type { PartnerResult } from '../hooks/usePartnerMatch';
 import { useCountries } from '../hooks/useCountries';
@@ -41,7 +42,12 @@ function PartnerCard({ result }: { result: PartnerResult }) {
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <h3 className="font-bold text-sm leading-snug" style={{ color: 'var(--color-text-primary)' }}>
-            {result.orgName}
+            <Link
+              to={`/org/${encodeURIComponent(result.orgName)}`}
+              className="text-[var(--color-eu-blue-lighter)] hover:underline"
+            >
+              {result.orgName}
+            </Link>
           </h3>
           <div className="flex items-center gap-2 mt-1">
             <span className="text-xs" style={{ color: 'var(--color-text-muted)' }}>

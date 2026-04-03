@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom';
 import type { Participant } from '../../api/types';
 
 interface ParticipantListProps {
@@ -24,7 +25,14 @@ export default function ParticipantList({ participants }: ParticipantListProps) 
           <tbody>
             {participants.map((p, i) => (
               <tr key={i} className="border-b border-[var(--color-border)] border-opacity-50">
-                <td className="py-2 pr-4 text-[var(--color-text-primary)]">{p.orgName}</td>
+                <td className="py-2 pr-4 text-[var(--color-text-primary)]">
+                  <Link
+                    to={`/org/${encodeURIComponent(p.orgName)}`}
+                    className="text-[var(--color-eu-blue-lighter)] hover:underline"
+                  >
+                    {p.orgName}
+                  </Link>
+                </td>
                 <td className="py-2 pr-4">
                   <span
                     className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${
