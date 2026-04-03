@@ -30,7 +30,7 @@ export interface MscaSupervisorOrg {
 }
 
 export function useMscaProjects(filters: MscaFilters) {
-  return useQuery<MscaProject[]>({
+  const query = useQuery<MscaProject[]>({
     queryKey: ['mscaProjects', filters],
     queryFn: async () => {
       const data: SparqlResponse = await executeSparql(
@@ -48,10 +48,11 @@ export function useMscaProjects(filters: MscaFilters) {
     },
     placeholderData: keepPreviousData,
   });
+  return { ...query, isLoading: query.isLoading || query.isFetching };
 }
 
 export function useMscaSupervisors(researchArea: string) {
-  return useQuery<MscaSupervisorOrg[]>({
+  const query = useQuery<MscaSupervisorOrg[]>({
     queryKey: ['mscaSupervisors', researchArea],
     queryFn: async () => {
       const data: SparqlResponse = await executeSparql(buildMscaSupervisorSearchQuery(researchArea));
@@ -65,4 +66,5 @@ export function useMscaSupervisors(researchArea: string) {
     enabled: researchArea.length >= 3,
     staleTime: 1000 * 60 * 30,
   });
+  return { ...query, isLoading: query.isLoading || query.isFetching };
 }

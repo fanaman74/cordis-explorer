@@ -164,7 +164,7 @@ export default function MscaPage() {
                           </p>
                         )}
                         {p.topicLabel && (
-                          <span className="text-xs font-mono text-[var(--color-text-secondary)] block mt-0.5 max-w-[160px] truncate">
+                          <span className="text-xs text-[var(--color-text-secondary)] block mt-0.5">
                             {p.topicLabel}
                           </span>
                         )}
@@ -222,7 +222,7 @@ export default function MscaPage() {
                   className="block p-4 rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-card)] hover:border-[var(--color-eu-blue-lighter)] transition-colors"
                 >
                   <div className="flex items-center justify-between gap-2 mb-2">
-                    <p className="text-sm font-semibold text-[var(--color-text-primary)] truncate">
+                    <p className="text-sm font-semibold text-[var(--color-text-primary)]">
                       {org.orgName}
                     </p>
                     <span className="shrink-0 text-xs text-[var(--color-eu-blue-lighter)] font-medium">
@@ -234,7 +234,7 @@ export default function MscaPage() {
                   )}
                   <ul className="text-xs text-[var(--color-text-secondary)] space-y-0.5 list-disc list-inside">
                     {org.projectTitles.slice(0, 2).map((t, j) => (
-                      <li key={j} className="truncate">{t}</li>
+                      <li key={j}>{t}</li>
                     ))}
                   </ul>
                 </Link>

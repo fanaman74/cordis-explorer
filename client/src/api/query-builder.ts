@@ -161,7 +161,7 @@ export function buildProjectSearchQuery(filters: SearchFilters): string {
       '?project eurio:isFundedBy ?atGrant .',
       '{ ?atGrant eurio:hasFundingSchemeTopic ?atTopic . } UNION { ?atGrant eurio:hasFundingSchemeCall ?atTopic . }',
       '?atTopic rdfs:label ?atTopicLabel .',
-      `FILTER(CONTAINS(UCASE(?atTopicLabel), '-${at}-') || REGEXP(UCASE(?atTopicLabel), '-${at}$'))`,
+      `FILTER(CONTAINS(UCASE(?atTopicLabel), '-${at}-') || REGEX(UCASE(?atTopicLabel), '-${at}$'))`,
     );
   }
 
@@ -548,7 +548,7 @@ export function buildMscaProjectSearchQuery(
     : '';
   const typeFilter =
     mscaType && mscaType !== 'all'
-      ? `FILTER(CONTAINS(UCASE(?mscaLabel), '-${escapeString(mscaType.toUpperCase())}-') || REGEXP(UCASE(?mscaLabel), '-${escapeString(mscaType.toUpperCase())}$'))`
+      ? `FILTER(CONTAINS(UCASE(?mscaLabel), '-${escapeString(mscaType.toUpperCase())}-') || REGEX(UCASE(?mscaLabel), '-${escapeString(mscaType.toUpperCase())}$'))`
       : '';
 
   return `
