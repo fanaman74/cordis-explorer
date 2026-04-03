@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import type { SearchFilters } from '../api/types';
+import type { EnhancedProject, SearchFilters } from '../api/types';
 import { useProjectSearch } from '../hooks/useProjectSearch';
 import { useSearchEnhance } from '../hooks/useSearchEnhance';
 import SearchBar from '../components/search/SearchBar';
@@ -82,7 +82,7 @@ export default function SearchPage() {
   const [aiEnhanced, setAiEnhanced] = useState(false);
   const enhancedProjects = enhanceMutation.data?.results ?? null;
   const displayProjects = aiEnhanced && enhancedProjects
-    ? (enhancedProjects as any[]).map((ep: any) => projects?.find(p => p.uri === ep.uri) ?? ep)
+    ? enhancedProjects.map((ep: EnhancedProject) => projects?.find(p => p.uri === ep.uri) ?? ep)
     : projects;
 
   useEffect(() => {

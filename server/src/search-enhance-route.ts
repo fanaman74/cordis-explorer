@@ -64,14 +64,16 @@ JSON format (return ONLY the array, no other text):
   const ranked: Array<{ index: number; relevanceScore: number; relevanceExplanation: string }> =
     JSON.parse(jsonMatch[0]);
 
-  return ranked.map((r) => {
-    const project = projects[r.index - 1];
-    return {
-      ...project,
-      relevanceScore: Math.min(100, Math.max(0, r.relevanceScore)),
-      relevanceExplanation: r.relevanceExplanation,
-    };
-  }).filter(Boolean);
+  return ranked
+    .filter((r) => r.index >= 1 && r.index <= projects.length)
+    .map((r) => {
+      const project = projects[r.index - 1];
+      return {
+        ...project,
+        relevanceScore: Math.min(100, Math.max(0, r.relevanceScore)),
+        relevanceExplanation: r.relevanceExplanation,
+      };
+    });
 }
 
 searchEnhanceRouter.post('/', requireAuth, async (req: Request, res: Response) => {
@@ -86,19 +88,20 @@ searchEnhanceRouter.post('/', requireAuth, async (req: Request, res: Response) =
     return;
   }
 
-  const cacheKey = getCacheKey(`search-enhance:${keyword}:${projects.map(p => p.uri).join(',')}`);
-  const cached = getCached(cacheKey);
-  if (cached) { res.json(cached); return; }
-
   try {
     await checkAndIncrementUsage(req.userId!, 'search_enhance');
+
+    const cacheKey = getCacheKey(`search-enhance:${keyword}:${projects.map(p => p.uri).join(',')}`);
+    const cached = getCached(cacheKey);
+    if (cached) { res.json(cached); return; }
+
     const results = await rerankWithClaude(keyword, projects);
     const payload = { results };
     setCache(cacheKey, payload);
     res.json(payload);
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Search enhance failed';
-    const statusCode = (err as any).statusCode ?? 502;
+    const statusCode = typeof (err as any).statusCode === 'number' ? (err as any).statusCode : 502;
     res.status(statusCode).json({ error: message });
   }
 });
