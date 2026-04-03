@@ -1,7 +1,8 @@
-import { useCallback, useEffect } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import type { SearchFilters } from '../api/types';
 import { useProjectSearch } from '../hooks/useProjectSearch';
+import { useSearchEnhance } from '../hooks/useSearchEnhance';
 import SearchBar from '../components/search/SearchBar';
 import FilterPanel from '../components/search/FilterPanel';
 import ActiveFilters from '../components/search/ActiveFilters';
@@ -77,6 +78,19 @@ export default function SearchPage() {
   }, [filters.keyword]);
   const { data: projects = [], isLoading, isError, error } = useProjectSearch(filters);
 
+  const enhanceMutation = useSearchEnhance();
+  const [aiEnhanced, setAiEnhanced] = useState(false);
+  const enhancedProjects = enhanceMutation.data?.results ?? null;
+  const displayProjects = aiEnhanced && enhancedProjects
+    ? (enhancedProjects as any[]).map((ep: any) => projects?.find(p => p.uri === ep.uri) ?? ep)
+    : projects;
+
+  useEffect(() => {
+    setAiEnhanced(false);
+    enhanceMutation.reset();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filters.keyword]);
+
   const updateFilters = useCallback(
     (updates: Partial<SearchFilters>) => {
       const newFilters = { ...filters, ...updates, page: updates.page ?? 1 };
@@ -122,10 +136,45 @@ export default function SearchPage() {
           </button>
         </div>
       )}
+      {projects && projects.length > 0 && filters.keyword && (
+        <div className="flex items-center gap-2 mt-2">
+          <button
+            onClick={() => {
+              if (!aiEnhanced) {
+                enhanceMutation.mutate(
+                  { keyword: filters.keyword!, projects: projects.slice(0, 30) },
+                  { onSuccess: () => setAiEnhanced(true) },
+                );
+              } else {
+                setAiEnhanced(false);
+              }
+            }}
+            disabled={enhanceMutation.isPending}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border transition-all"
+            style={
+              aiEnhanced
+                ? { background: 'var(--color-eu-blue)', color: '#fff', borderColor: 'var(--color-eu-blue)' }
+                : { background: 'transparent', color: 'var(--color-text-secondary)', borderColor: 'var(--color-border)' }
+            }
+          >
+            {enhanceMutation.isPending ? (
+              <span className="animate-spin inline-block w-3 h-3 border-2 border-current border-t-transparent rounded-full" />
+            ) : (
+              <span>✦</span>
+            )}
+            {aiEnhanced ? 'AI ranked' : 'AI re-rank'}
+          </button>
+          {aiEnhanced && (
+            <span className="text-xs text-[var(--color-text-secondary)]">
+              Results re-ordered by semantic relevance
+            </span>
+          )}
+        </div>
+      )}
 
       <div className="mt-4">
         <SearchResults
-          projects={projects}
+          projects={displayProjects ?? []}
           isLoading={isLoading}
           isError={isError}
           error={error}

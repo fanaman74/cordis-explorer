@@ -146,3 +146,19 @@ export interface FundingCall {
   applicationEffortHours?: number;
   timeToMoneyMonths?: number;
 }
+
+export interface EnhancedProject {
+  uri: string;
+  title: string;
+  acronym?: string;
+  identifier?: string;
+  startDate?: string;
+  countries: string[];
+  topicLabel?: string;
+  relevanceScore: number;
+  relevanceExplanation: string;
+}
+
+export interface SearchEnhanceResponse {
+  results: EnhancedProject[];
+}

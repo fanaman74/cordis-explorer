@@ -1,6 +1,6 @@
 import { createClient } from '@supabase/supabase-js';
 
-export type ToolName = 'grant_search' | 'profile_match' | 'grant_match' | 'partner_match';
+export type ToolName = 'grant_search' | 'profile_match' | 'grant_match' | 'partner_match' | 'search_enhance' | 'partner_search';
 
 export const FREE_LIMIT = 1;
 
@@ -9,6 +9,8 @@ const COL: Record<ToolName, string> = {
   profile_match: 'profile_match_count',
   grant_match: 'grant_match_count',
   partner_match: 'partner_match_count',
+  search_enhance: 'search_enhance_count',
+  partner_search: 'partner_search_count',
 };
 
 function getAdmin() {
