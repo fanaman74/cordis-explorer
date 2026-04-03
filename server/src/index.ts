@@ -26,6 +26,7 @@ import { adminRouter } from './admin-route.js';
 import { partnerMatchRouter } from './partner-match-route.js';
 import { searchEnhanceRouter } from './search-enhance-route.js';
 import { partnerSearchRouter } from './partner-search-route.js';
+import { watchlistRouter } from './watchlist-route.js';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -65,6 +66,7 @@ app.use('/api/admin', adminRouter);
 app.use('/api/partner-match', partnerMatchRouter);
 app.use('/api/search-enhance', searchEnhanceRouter);
 app.use('/api/partner-search-hub', partnerSearchRouter);
+app.use('/api/watchlist', watchlistRouter);
 
 app.get('/api/health', (_req, res) => {
   res.json({ status: 'ok' });

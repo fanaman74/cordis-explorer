@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import type { MatchResult } from '../../api/types';
+import { useWatchlist, useToggleWatchlist } from '../../hooks/useWatchlist';
 
 const VERDICT_STYLES: Record<string, { card: string; badge: string }> = {
   GO: {
@@ -19,6 +20,9 @@ const VERDICT_STYLES: Record<string, { card: string; badge: string }> = {
 export default function MatchCard({ result }: { result: MatchResult }) {
   const [expanded, setExpanded] = useState(false);
   const styles = VERDICT_STYLES[result.verdict] ?? VERDICT_STYLES['MAYBE'];
+  const { data: watchlist = [] } = useWatchlist();
+  const { add, remove } = useToggleWatchlist();
+  const isSaved = watchlist.some(w => w.call_id === result.callId);
 
   return (
     <div className={`rounded-xl border ${styles.card}`}>
@@ -85,6 +89,25 @@ export default function MatchCard({ result }: { result: MatchResult }) {
           </div>
         </div>
         <div className="flex items-center gap-2 shrink-0">
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              if (isSaved) {
+                remove.mutate(result.callId);
+              } else {
+                add.mutate({
+                  call_id: result.callId,
+                  call_title: result.callTitle,
+                  deadline: result.deadline,
+                });
+              }
+            }}
+            title={isSaved ? 'Remove from watchlist' : 'Save to watchlist'}
+            className="text-lg leading-none transition-transform hover:scale-110 ml-2 shrink-0"
+            aria-label={isSaved ? 'Remove from watchlist' : 'Add to watchlist'}
+          >
+            {isSaved ? '⭐' : '☆'}
+          </button>
           <span className={`px-2.5 py-1 rounded-full text-xs font-bold ${styles.badge}`}>
             {result.matchScore} · {result.verdict}
           </span>
