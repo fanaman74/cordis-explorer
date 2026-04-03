@@ -1,6 +1,7 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import ClusterBubbles from '../components/common/ClusterBubbles';
-import { useState } from 'react';
+import CalendarView from '../components/events/CalendarView';
+import { useEvents } from '../hooks/useEvents';
 
 interface EventSource {
   name: string;
@@ -106,16 +107,21 @@ const TYPE_COLORS: Record<EventSource['type'], string> = {
 };
 
 const CLUSTER_MAP: Record<string, string[]> = {
-  'CL1': ['Health (CL1)'],
-  'CL2': ['Culture, Creativity & Society (CL2)'],
-  'CL3': ['Civil Security for Society (CL3)'],
-  'CL4': ['Digital, Industry & Space (CL4)'],
-  'CL5': ['Climate, Energy & Mobility (CL5)'],
-  'CL6': ['Food, Bioeconomy & Agriculture (CL6)'],
+  '1': ['Health (CL1)'],
+  '2': ['Culture, Creativity & Society (CL2)'],
+  '3': ['Civil Security for Society (CL3)'],
+  '4': ['Digital, Industry & Space (CL4)'],
+  '5': ['Climate, Energy & Mobility (CL5)'],
+  '6': ['Food, Bioeconomy & Agriculture (CL6)'],
 };
 
 export default function EventsPage() {
   const [selectedCluster, setSelectedCluster] = useState<string | null>(null);
+
+  const { data: eventsData, isLoading: eventsLoading } = useEvents({
+    cluster: selectedCluster ?? undefined,
+    page: 1,
+  });
 
   useEffect(() => {
     document.title = 'Brokerage Events — CORDIS Explorer';
@@ -142,14 +148,8 @@ export default function EventsPage() {
         </p>
       </div>
 
-      {/* Info banner */}
-      <div className="mb-6 p-4 rounded-xl border border-[var(--color-eu-blue)]/30 bg-[var(--color-eu-blue)]/5 text-sm text-[var(--color-text-secondary)]">
-        <span className="font-medium text-[var(--color-text-primary)]">Live event feeds are gated behind API keys.</span>{' '}
-        Below are the best direct sources for EU brokerage events — each links to the official calendar so you always see the latest listings.
-      </div>
-
       {/* Cluster filter */}
-      <div className="mb-8 p-4 rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-card)]">
+      <div className="mb-6 p-4 rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-card)]">
         <ClusterBubbles
           selected={selectedCluster}
           onChange={setSelectedCluster}
@@ -157,40 +157,57 @@ export default function EventsPage() {
         />
       </div>
 
-      <div className="space-y-4">
-        {filtered.map(source => (
-          <a
-            key={source.url}
-            href={source.url}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="block rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-card)] p-5 hover:border-[var(--color-eu-blue-lighter)] transition-colors group"
-          >
-            <div className="flex items-start justify-between gap-4">
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 flex-wrap mb-1">
-                  <h3 className="font-semibold text-[var(--color-text-primary)] text-sm group-hover:text-[var(--color-eu-blue-lighter)] transition-colors">
-                    {source.name}
-                  </h3>
-                  <span className={`shrink-0 text-xs px-2 py-0.5 rounded-full border ${TYPE_COLORS[source.type]}`}>
-                    {TYPE_LABELS[source.type]}
-                  </span>
-                </div>
-                {source.clusters && (
-                  <p className="text-xs text-[var(--color-text-secondary)] mb-1">
-                    {source.clusters.join(' · ')}
+      {/* Events Calendar */}
+      <div className="mb-10">
+        <h2 className="text-lg font-semibold text-[var(--color-text-primary)] mb-4">
+          Upcoming Events
+        </h2>
+        <CalendarView
+          events={eventsData?.events ?? []}
+          isLoading={eventsLoading}
+        />
+      </div>
+
+      {/* Event sources */}
+      <div className="mb-4">
+        <h2 className="text-lg font-semibold text-[var(--color-text-primary)] mb-4">
+          Browse Event Sources
+        </h2>
+        <div className="space-y-4">
+          {filtered.map(source => (
+            <a
+              key={source.url}
+              href={source.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="block rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-card)] p-5 hover:border-[var(--color-eu-blue-lighter)] transition-colors group"
+            >
+              <div className="flex items-start justify-between gap-4">
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap mb-1">
+                    <h3 className="font-semibold text-[var(--color-text-primary)] text-sm group-hover:text-[var(--color-eu-blue-lighter)] transition-colors">
+                      {source.name}
+                    </h3>
+                    <span className={`shrink-0 text-xs px-2 py-0.5 rounded-full border ${TYPE_COLORS[source.type]}`}>
+                      {TYPE_LABELS[source.type]}
+                    </span>
+                  </div>
+                  {source.clusters && (
+                    <p className="text-xs text-[var(--color-text-secondary)] mb-1">
+                      {source.clusters.join(' · ')}
+                    </p>
+                  )}
+                  <p className="text-sm text-[var(--color-text-secondary)] leading-relaxed">
+                    {source.description}
                   </p>
-                )}
-                <p className="text-sm text-[var(--color-text-secondary)] leading-relaxed">
-                  {source.description}
-                </p>
+                </div>
+                <span className="shrink-0 text-xs font-medium text-[var(--color-eu-blue-lighter)] whitespace-nowrap mt-1">
+                  Browse events →
+                </span>
               </div>
-              <span className="shrink-0 text-xs font-medium text-[var(--color-eu-blue-lighter)] whitespace-nowrap mt-1">
-                Browse events →
-              </span>
-            </div>
-          </a>
-        ))}
+            </a>
+          ))}
+        </div>
       </div>
 
       <p className="mt-8 text-xs text-[var(--color-text-secondary)] text-center">

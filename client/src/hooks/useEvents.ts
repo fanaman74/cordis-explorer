@@ -9,7 +9,8 @@ export interface BrokerageEvent {
   country?: string;
   city?: string;
   registrationUrl?: string;
-  source: 'een';
+  category?: string;
+  source: string;
 }
 
 export interface EventsResponse {
