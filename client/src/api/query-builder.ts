@@ -535,6 +535,105 @@ LIMIT 20
   `.trim();
 }
 
+/** Search for MSCA projects by keyword and type */
+export function buildMscaProjectSearchQuery(
+  keyword: string,
+  mscaType: string,
+  page: number,
+  pageSize: number,
+): string {
+  const offset = (page - 1) * pageSize;
+  const kwFilter = keyword
+    ? `FILTER(CONTAINS(LCASE(?title), '${escapeString(keyword.toLowerCase())}') || CONTAINS(LCASE(COALESCE(?objective,"")), '${escapeString(keyword.toLowerCase())}'))`
+    : '';
+  const typeFilter =
+    mscaType && mscaType !== 'all'
+      ? `FILTER(CONTAINS(UCASE(?mscaLabel), '-${escapeString(mscaType.toUpperCase())}-') || REGEXP(UCASE(?mscaLabel), '-${escapeString(mscaType.toUpperCase())}$'))`
+      : '';
+
+  return `
+PREFIX eurio: <http://data.europa.eu/s66#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+
+SELECT DISTINCT ?project ?title ?acronym ?identifier ?startDate ?mscaLabel ?countryName
+WHERE {
+  ?project a eurio:Project .
+  ?project eurio:title ?title .
+  OPTIONAL { ?project eurio:acronym ?acronym }
+  OPTIONAL { ?project eurio:identifier ?identifier }
+  OPTIONAL { ?project eurio:startDate ?startDate }
+  OPTIONAL { ?project eurio:objective ?objective }
+
+  ?project eurio:isFundedBy ?mscaGrant .
+  { ?mscaGrant eurio:hasFundingSchemeTopic ?mscaTopic . } UNION { ?mscaGrant eurio:hasFundingSchemeCall ?mscaTopic . }
+  ?mscaTopic rdfs:label ?mscaLabel .
+  FILTER(
+    CONTAINS(UCASE(?mscaLabel), 'MSCA') ||
+    CONTAINS(UCASE(?mscaLabel), 'MARIE-CURIE') ||
+    CONTAINS(UCASE(?mscaLabel), 'MARIE CURIE') ||
+    CONTAINS(UCASE(?mscaLabel), 'H2020-MSCA') ||
+    CONTAINS(UCASE(?mscaLabel), 'FP7-PEOPLE')
+  )
+  ${typeFilter}
+
+  OPTIONAL {
+    ?project eurio:hasInvolvedParty ?coordRole .
+    ?coordRole eurio:roleLabel ?rl .
+    FILTER(CONTAINS(UCASE(?rl), 'COORDINATOR'))
+    ?coordRole eurio:isRoleOf ?coordOrg .
+    ?coordOrg eurio:hasSite ?coordSite .
+    ?coordSite eurio:hasGeographicalLocation ?coordCountry .
+    ?coordCountry a eurio:Country .
+    ?coordCountry eurio:name ?countryName .
+  }
+
+  ${kwFilter}
+}
+ORDER BY DESC(?startDate)
+LIMIT ${pageSize}
+OFFSET ${offset}
+  `.trim();
+}
+
+/** Search for MSCA host organisations by research area */
+export function buildMscaSupervisorSearchQuery(researchArea: string): string {
+  const area = escapeString(researchArea.toLowerCase());
+  return `
+PREFIX eurio: <http://data.europa.eu/s66#>
+PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
+
+SELECT ?orgName ?countryName (COUNT(DISTINCT ?project) AS ?mscaProjectCount)
+       (GROUP_CONCAT(DISTINCT ?title; SEPARATOR="||") AS ?projectTitles)
+WHERE {
+  ?project a eurio:Project .
+  ?project eurio:title ?title .
+  FILTER(CONTAINS(LCASE(?title), '${area}'))
+
+  ?project eurio:isFundedBy ?mscaGrant .
+  { ?mscaGrant eurio:hasFundingSchemeTopic ?mscaTopic . } UNION { ?mscaGrant eurio:hasFundingSchemeCall ?mscaTopic . }
+  ?mscaTopic rdfs:label ?mscaLabel .
+  FILTER(
+    CONTAINS(UCASE(?mscaLabel), 'MSCA') ||
+    CONTAINS(UCASE(?mscaLabel), 'MARIE') ||
+    CONTAINS(UCASE(?mscaLabel), 'FP7-PEOPLE')
+  )
+
+  ?project eurio:hasInvolvedParty ?role .
+  ?role eurio:isRoleOf ?org .
+  ?org eurio:legalName ?orgName .
+  OPTIONAL {
+    ?org eurio:hasSite ?site .
+    ?site eurio:hasGeographicalLocation ?country .
+    ?country a eurio:Country .
+    ?country eurio:name ?countryName .
+  }
+}
+GROUP BY ?orgName ?countryName
+ORDER BY DESC(?mscaProjectCount)
+LIMIT 20
+  `.trim();
+}
+
 /** Fetch frequent co-applicant organisations */
 export function buildOrgCoApplicantsQuery(orgName: string): string {
   const name = escapeString(orgName);
