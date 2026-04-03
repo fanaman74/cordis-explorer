@@ -579,6 +579,12 @@ export default function HomePage() {
               <div className="flex-1 min-w-0 pt-0.5">
                 <div className="flex items-center gap-2 mb-1">
                   <span className="font-semibold text-sm" style={{ color: '#222222', letterSpacing: '-0.01em' }}>{tool.label}</span>
+                  {tool.requiresAuth && (
+                    <span className="rounded-full text-[10px] font-bold px-2 py-0.5"
+                      style={{ background: 'linear-gradient(135deg, #ff385c, #e00b41)', color: '#ffffff', letterSpacing: '0.04em' }}>
+                      PRO
+                    </span>
+                  )}
                   {tool.badge && (
                     <span className="rounded-full text-[10px] font-bold px-2 py-0.5"
                       style={{ background: 'rgba(255,56,92,0.1)', color: '#ff385c', border: '1px solid rgba(255,56,92,0.2)' }}>
