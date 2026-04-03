@@ -10,6 +10,7 @@ import GrantSearchPage from './pages/GrantSearchPage';
 import AdminPage from './pages/AdminPage';
 import MapPage from './pages/MapPage';
 import PartnerMatchPage from './pages/PartnerMatchPage';
+import PartnerSearchPage from './pages/PartnerSearchPage';
 import CreditsPage from './pages/CreditsPage';
 import KnowledgeGraphPage from './pages/KnowledgeGraphPage';
 import AuthModal from './components/auth/AuthModal';
@@ -32,6 +33,7 @@ export default function App() {
           <Route path="/admin" element={<AdminPage />} />
           <Route path="/map" element={<MapPage />} />
           <Route path="/partner-match" element={<PartnerMatchPage />} />
+          <Route path="/partner-search" element={<PartnerSearchPage />} />
           <Route path="/pricing" element={<CreditsPage />} />
           <Route path="/credits" element={<CreditsPage />} />
           <Route path="/graph" element={<KnowledgeGraphPage />} />

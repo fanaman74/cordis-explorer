@@ -31,6 +31,14 @@ export default function MatchCard({ result }: { result: MatchResult }) {
             {result.callTitle}
           </h4>
           <p className="text-xs text-[var(--color-text-muted)] mt-0.5 font-mono">{result.callId}</p>
+          {result.callId && (
+            <a
+              href={`/partner-search?callId=${encodeURIComponent(result.callId)}`}
+              className="inline-flex items-center gap-1 text-xs text-[var(--color-eu-blue-lighter)] hover:underline mt-1"
+            >
+              🤝 Find partners →
+            </a>
+          )}
           {(result.deadline || result.budget) && (
             <p className="text-xs text-[var(--color-text-muted)] mt-1">
               {result.budget && <span>{result.budget}</span>}

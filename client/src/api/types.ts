@@ -162,3 +162,34 @@ export interface EnhancedProject {
 export interface SearchEnhanceResponse {
   results: EnhancedProject[];
 }
+
+export interface PartnerProfile {
+  id: string;
+  orgName: string;
+  country: string;
+  callReference?: string;
+  callTitle?: string;
+  type: 'offer' | 'request';
+  summary: string;
+  expertise: string[];
+  deadline?: string;
+  ftPortalUrl: string;
+  cordisProjectCount?: number;
+  cordisRecentProjects?: string[];
+  cordisEnriched: boolean;
+}
+
+export interface PartnerSearchFilters {
+  callId?: string;
+  cluster?: string; // '1'–'6'
+  country?: string;
+  page: number;
+}
+
+export interface PartnerSearchResponse {
+  profiles: PartnerProfile[];
+  total: number;
+  page: number;
+  callTitle?: string;
+  ftUnavailable?: boolean;
+}

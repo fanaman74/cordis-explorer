@@ -81,6 +81,11 @@ const TOOLS = [
     label: 'Partner Match', description: 'Find ideal EU consortium partners using AI.',
   },
   {
+    requiresAuth: true, to: '/partner-search',
+    icon: '🤝',
+    label: 'Partner Search Hub', description: 'Find organisations actively seeking EU research partners via the F&T Portal, enriched with their CORDIS track record.',
+  },
+  {
     to: '/graph',
     icon: <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} className="w-5 h-5"><circle cx="5" cy="12" r="2.5"/><circle cx="19" cy="6" r="2.5"/><circle cx="19" cy="18" r="2.5"/><circle cx="12" cy="12" r="2.5"/><path strokeLinecap="round" d="M7.5 12h2M14.5 12h2M17 7.5l-3 3M17 16.5l-3-3"/></svg>,
     label: 'Knowledge Graph', description: 'Explore the EURIO knowledge graph — organisations, projects, countries.',
