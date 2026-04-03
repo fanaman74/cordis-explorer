@@ -196,7 +196,7 @@ const EU_ARCS = [
 
 function EuropeMapAnimation() {
   return (
-    <svg viewBox="0 0 500 500" className="w-full h-full" fill="none">
+    <svg viewBox="0 0 500 500" className="w-full h-full" fill="none" role="img" aria-label="Animated map of EU research collaboration network showing connections between major European cities">
       <defs>
         {EU_ARCS.map(a => <path key={a.id} id={a.id} d={a.d} />)}
       </defs>
@@ -358,7 +358,7 @@ function LatestAdditions() {
 
 export default function HomePage() {
   const { user, openAuthModal } = useAuth();
-  const visibleTools = TOOLS.filter(t => !t.requiresAuth || user);
+  const visibleTools = TOOLS;
 
   useEffect(() => {
     document.title = 'CORDIS Explorer — Search EU-Funded Research Projects';
@@ -402,9 +402,9 @@ export default function HomePage() {
             </span>
           </div>
           {/* Stacked headline */}
-          <div style={{ lineHeight: 0.88 }}>
+          <h1 style={{ lineHeight: 0.88, margin: 0 }}>
             {(['EU FUNDING', 'DECODED.'] as const).map((word, i) => (
-              <div key={word} style={{
+              <span key={word} style={{
                 display: 'block',
                 fontSize: 'clamp(38px, 5.8vw, 90px)',
                 fontWeight: 900,
@@ -412,9 +412,9 @@ export default function HomePage() {
                 color: i === 1 ? '#ff385c' : 'white',
               }}>
                 {word}
-              </div>
+              </span>
             ))}
-          </div>
+          </h1>
         </div>
 
         {/* ── Bottom-center: text + CTA ── */}
@@ -509,6 +509,34 @@ export default function HomePage() {
       </section>
 
       {/* ══════════════════════════════════
+          ABOUT — prose content for SEO / AI extraction
+      ══════════════════════════════════ */}
+      <section className="max-w-3xl mx-auto px-6 py-14">
+        <h2 className="text-2xl font-bold mb-4" style={{ color: '#222222', letterSpacing: '-0.04em' }}>
+          What is CORDIS Explorer?
+        </h2>
+        <div className="text-sm leading-relaxed space-y-3" style={{ color: '#484848' }}>
+          <p>
+            CORDIS Explorer is an AI-powered search platform for EU-funded research projects.
+            It connects to the official CORDIS EURIO Knowledge Graph maintained by the European Commission
+            and makes it easy to search, filter, and analyse over 50,000 projects funded under
+            Horizon Europe, Horizon 2020, and FP7 — representing more than &euro;100 billion in public research funding.
+          </p>
+          <p>
+            Unlike the official CORDIS portal, CORDIS Explorer adds intelligent grant matching:
+            describe your research in plain language and the AI ranks the most relevant open EU funding calls
+            for your organisation. The Partner Match tool identifies potential consortium partners
+            based on complementary expertise and past project participation across 27 EU member states.
+          </p>
+          <p>
+            The platform also features an interactive Knowledge Graph explorer for visualising relationships
+            between organisations, projects, and research topics, as well as a geographic map showing
+            how EU research funding is distributed across Europe.
+          </p>
+        </div>
+      </section>
+
+      {/* ══════════════════════════════════
           TOOLS
       ══════════════════════════════════ */}
       <section className="max-w-5xl mx-auto px-6 py-16">
@@ -526,6 +554,7 @@ export default function HomePage() {
             <Link
               key={tool.to}
               to={tool.to}
+              onClick={tool.requiresAuth && !user ? (e: React.MouseEvent) => { e.preventDefault(); openAuthModal(); } : undefined}
               className="group rounded-2xl p-6 flex items-start gap-4 no-underline transition-all duration-200"
               style={{
                 background: '#ffffff',

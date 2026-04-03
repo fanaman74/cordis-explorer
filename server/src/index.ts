@@ -1,6 +1,6 @@
 import { config } from 'dotenv';
 import { resolve } from 'path';
-import { existsSync } from 'fs';
+import { existsSync, readFileSync } from 'fs';
 // Find .env regardless of where the server process is started from
 const envCandidates = [
   resolve(__dirname, '../../.env'),
@@ -48,7 +48,7 @@ app.use(helmet({
         "https://cordis.europa.eu",
         "https://raw.githubusercontent.com",
       ],
-      fontSrc: ["'self'", "data:"],
+      fontSrc: ["'self'", "data:", "https://fonts.gstatic.com", "https://fonts.googleapis.com"],
       workerSrc: ["'self'", "blob:"],
     },
   },
@@ -66,10 +66,45 @@ app.get('/api/health', (_req, res) => {
   res.json({ status: 'ok' });
 });
 
-// In production, serve the built React frontend
+// In production, serve the built React frontend with SSR
 const clientDistPath = resolve(__dirname, '../../client/dist');
-app.use(express.static(clientDistPath));
-app.get('*', (_req, res) => {
+const ssrDistPath = resolve(__dirname, '../../client/dist-ssr');
+
+app.use(express.static(clientDistPath, { index: false }));
+
+// Load SSR module and HTML template
+let ssrRender: ((url: string) => string) | null = null;
+let htmlTemplate = '';
+
+const ssrEntryPath = resolve(ssrDistPath, 'entry-server.js');
+const htmlPath = resolve(clientDistPath, 'index.html');
+
+if (existsSync(ssrEntryPath) && existsSync(htmlPath)) {
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const ssrModule = require(ssrEntryPath);
+    ssrRender = ssrModule.render;
+    htmlTemplate = readFileSync(htmlPath, 'utf-8');
+    console.log('[ssr] SSR enabled — crawlers will see pre-rendered HTML');
+  } catch (err) {
+    console.warn('[ssr] Failed to load SSR module, falling back to SPA:', err);
+  }
+} else {
+  console.log('[ssr] SSR bundle not found, serving as SPA');
+}
+
+app.get('*', (req, res) => {
+  if (ssrRender && htmlTemplate) {
+    try {
+      const appHtml = ssrRender(req.originalUrl);
+      const html = htmlTemplate.replace('<div id="root"></div>', `<div id="root">${appHtml}</div>`);
+      res.status(200).set({ 'Content-Type': 'text/html' }).send(html);
+      return;
+    } catch (err) {
+      console.error('[ssr] Render error, falling back to SPA:', err);
+    }
+  }
+  // Fallback: serve the SPA shell
   res.sendFile(resolve(clientDistPath, 'index.html'));
 });
 
