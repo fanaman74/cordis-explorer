@@ -34,7 +34,7 @@ export function useGrantMatch(tool: GrantTool = 'grant_match') {
   return useMutation<GrantMatchResponse, Error, StartupProfile>({
     mutationFn: (profile) => postGrantMatch(profile, tool),
     onError: (err) => {
-      if (err.message === 'limit_exceeded') navigate('/credits');
+      if (err.message === 'limit_exceeded') navigate('/pricing');
     },
   });
 }

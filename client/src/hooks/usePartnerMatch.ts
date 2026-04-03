@@ -49,7 +49,7 @@ export function usePartnerMatch() {
   return useMutation<PartnerMatchResponse, Error, PartnerRequest>({
     mutationFn: postPartnerMatch,
     onError: (err) => {
-      if (err.message === 'limit_exceeded') navigate('/credits');
+      if (err.message === 'limit_exceeded') navigate('/pricing');
     },
   });
 }

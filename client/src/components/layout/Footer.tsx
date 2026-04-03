@@ -12,7 +12,7 @@ export default function Footer() {
           <Link to="/partner-match" className="no-underline hover:underline" style={{ color: '#6a6a6a' }}>Partner Match</Link>
           <Link to="/graph" className="no-underline hover:underline" style={{ color: '#6a6a6a' }}>Knowledge Graph</Link>
           <Link to="/map" className="no-underline hover:underline" style={{ color: '#6a6a6a' }}>Map</Link>
-          <Link to="/credits" className="no-underline hover:underline" style={{ color: '#6a6a6a' }}>Pricing</Link>
+          <Link to="/pricing" className="no-underline hover:underline" style={{ color: '#6a6a6a' }}>Pricing</Link>
         </nav>
 
         {/* Attribution + copyright */}
