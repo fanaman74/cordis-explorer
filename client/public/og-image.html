@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    width: 1200px;
+    height: 630px;
+    font-family: -apple-system, 'Segoe UI', sans-serif;
+    background: radial-gradient(ellipse at 58% 50%, rgba(255,56,92,0.14) 0%, transparent 58%),
+                linear-gradient(155deg, #09000d 0%, #130008 55%, #07000a 100%);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    position: relative;
+    overflow: hidden;
+  }
+
+  /* Subtle grid */
+  body::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    opacity: 0.03;
+    background-image:
+      linear-gradient(rgba(255,255,255,1) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255,255,255,1) 1px, transparent 1px);
+    background-size: 64px 64px;
+  }
+
+  /* Watermark */
+  body::after {
+    content: 'CORDIS';
+    position: absolute;
+    bottom: -20px;
+    left: 0;
+    right: 0;
+    text-align: center;
+    font-size: 180px;
+    font-weight: 900;
+    letter-spacing: -0.04em;
+    color: transparent;
+    -webkit-text-stroke: 1px rgba(255,255,255,0.04);
+    pointer-events: none;
+  }
+
+  .content {
+    position: relative;
+    z-index: 1;
+    text-align: center;
+  }
+
+  .logo {
+    display: inline-flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 36px;
+  }
+  .logo-box {
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    background: #ff385c;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-weight: 900;
+    font-size: 18px;
+  }
+  .logo-text {
+    color: white;
+    font-size: 24px;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+  }
+
+  .headline {
+    line-height: 0.9;
+    margin-bottom: 32px;
+  }
+  .headline span {
+    display: block;
+    font-size: 96px;
+    font-weight: 900;
+    letter-spacing: -0.04em;
+    color: white;
+  }
+  .headline span.accent {
+    color: #ff385c;
+  }
+
+  .subtitle {
+    color: rgba(255,255,255,0.5);
+    font-size: 22px;
+    font-weight: 500;
+    letter-spacing: -0.01em;
+    max-width: 600px;
+    line-height: 1.4;
+  }
+
+  .pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(255,56,92,0.12);
+    border: 1px solid rgba(255,56,92,0.3);
+    border-radius: 999px;
+    padding: 6px 16px;
+    margin-bottom: 20px;
+  }
+  .pill-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #ff385c;
+  }
+  .pill-label {
+    color: #ff385c;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+
+  .stats {
+    position: absolute;
+    bottom: 40px;
+    left: 0;
+    right: 0;
+    display: flex;
+    justify-content: center;
+    gap: 60px;
+    z-index: 1;
+  }
+  .stat-value {
+    color: white;
+    font-size: 20px;
+    font-weight: 800;
+    letter-spacing: -0.03em;
+  }
+  .stat-label {
+    color: rgba(255,255,255,0.35);
+    font-size: 12px;
+    font-weight: 500;
+    margin-top: 2px;
+  }
+</style>
+</head>
+<body>
+  <div class="content">
+    <div class="pill">
+      <div class="pill-dot"></div>
+      <span class="pill-label">EU Research Intelligence</span>
+    </div>
+    <div class="logo">
+      <div class="logo-box">EU</div>
+      <span class="logo-text">CORDIS Explorer</span>
+    </div>
+    <div class="headline">
+      <span>EU FUNDING</span>
+      <span class="accent">DECODED.</span>
+    </div>
+    <p class="subtitle">Search 50,000+ EU-funded research projects. AI-powered grant matching for Horizon Europe, H2020 and FP7.</p>
+  </div>
+
+  <div class="stats">
+    <div style="text-align:center">
+      <div class="stat-value">50,000+</div>
+      <div class="stat-label">Projects</div>
+    </div>
+    <div style="text-align:center">
+      <div class="stat-value">&euro;100B+</div>
+      <div class="stat-label">Funding</div>
+    </div>
+    <div style="text-align:center">
+      <div class="stat-value">27</div>
+      <div class="stat-label">Countries</div>
+    </div>
+  </div>
+</body>
+</html>
