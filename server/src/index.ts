@@ -28,6 +28,7 @@ import { searchEnhanceRouter } from './search-enhance-route.js';
 import { partnerSearchRouter } from './partner-search-route.js';
 import { watchlistRouter } from './watchlist-route.js';
 import { eventsRouter } from './events-route.js';
+import { historyRouter } from './history-route.js';
 
 const app = express();
 const PORT = process.env.PORT || 3001;
@@ -69,6 +70,7 @@ app.use('/api/search-enhance', searchEnhanceRouter);
 app.use('/api/partner-search-hub', partnerSearchRouter);
 app.use('/api/watchlist', watchlistRouter);
 app.use('/api/events', eventsRouter);
+app.use('/api/history', historyRouter);
 
 app.get('/api/health', (_req, res) => {
   res.json({ status: 'ok' });

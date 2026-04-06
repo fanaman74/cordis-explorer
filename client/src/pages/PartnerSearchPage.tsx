@@ -1,6 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { usePartnerSearch } from '../hooks/usePartnerSearch';
+import { useSaveHistory } from '../hooks/useHistory';
 import { useCountries } from '../hooks/useCountries';
 import ClusterBubbles from '../components/common/ClusterBubbles';
 import Pagination from '../components/common/Pagination';
@@ -88,6 +89,23 @@ export default function PartnerSearchPage() {
   const [callInput, setCallInput] = useState(filters.callId ?? '');
 
   const { data, isLoading, error } = usePartnerSearch(filters);
+  const saveHistory = useSaveHistory();
+  const savedKeyRef = useRef<string>('');
+
+  useEffect(() => {
+    const partners = data?.partners ?? [];
+    if (!filters.callId || partners.length === 0) return;
+    const key = JSON.stringify(filters);
+    if (savedKeyRef.current === key) return;
+    savedKeyRef.current = key;
+    saveHistory.mutate({
+      query_type: 'partner_search',
+      query_params: { callId: filters.callId, country: filters.country, cluster: filters.cluster },
+      result_count: partners.length,
+      results_snapshot: partners.slice(0, 8).map(p => ({ orgName: p.orgName, country: p.country, projectCount: p.projectCount })),
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [data, filters.callId]);
 
   useEffect(() => {
     document.title = 'Partner Search — CORDIS Explorer';

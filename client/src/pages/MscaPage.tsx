@@ -1,6 +1,7 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useSearchParams, Link } from 'react-router-dom';
 import { useMscaProjects, useMscaSupervisors } from '../hooks/useMscaSearch';
+import { useSaveHistory } from '../hooks/useHistory';
 import type { MscaType } from '../hooks/useMscaSearch';
 import Spinner from '../components/common/Spinner';
 import EmptyState from '../components/common/EmptyState';
@@ -43,6 +44,37 @@ export default function MscaPage() {
   });
 
   const { data: supervisors = [], isLoading: supervisorsLoading } = useMscaSupervisors(supervisorArea);
+
+  const saveHistory = useSaveHistory();
+  const savedProjectKeyRef = useRef<string>('');
+  const savedSupervisorKeyRef = useRef<string>('');
+
+  useEffect(() => {
+    if (!keyword || projects.length === 0) return;
+    const key = `${keyword}:${mscaType}:${page}`;
+    if (savedProjectKeyRef.current === key) return;
+    savedProjectKeyRef.current = key;
+    saveHistory.mutate({
+      query_type: 'msca_projects',
+      query_params: { keyword, mscaType },
+      result_count: projects.length,
+      results_snapshot: projects.slice(0, 8).map(p => ({ title: p.title, acronym: p.acronym, identifier: p.identifier })),
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [projects, keyword, mscaType]);
+
+  useEffect(() => {
+    if (!supervisorArea || supervisors.length === 0) return;
+    if (savedSupervisorKeyRef.current === supervisorArea) return;
+    savedSupervisorKeyRef.current = supervisorArea;
+    saveHistory.mutate({
+      query_type: 'msca_supervisors',
+      query_params: { researchArea: supervisorArea },
+      result_count: supervisors.length,
+      results_snapshot: supervisors.slice(0, 8).map(s => ({ orgName: s.orgName, country: s.country, mscaProjectCount: s.mscaProjectCount })),
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [supervisors, supervisorArea]);
 
   function search() {
     setKeyword(inputValue);

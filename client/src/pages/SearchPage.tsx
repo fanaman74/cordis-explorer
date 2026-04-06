@@ -1,8 +1,9 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import type { EnhancedProject, SearchFilters } from '../api/types';
 import { useProjectSearch } from '../hooks/useProjectSearch';
 import { useSearchEnhance } from '../hooks/useSearchEnhance';
+import { useSaveHistory } from '../hooks/useHistory';
 import SearchBar from '../components/search/SearchBar';
 import FilterPanel from '../components/search/FilterPanel';
 import ActiveFilters from '../components/search/ActiveFilters';
@@ -83,6 +84,22 @@ export default function SearchPage() {
       : 'Search EU Research Projects — CORDIS Explorer';
   }, [filters.keyword]);
   const { data: projects = [], isLoading, isError, error } = useProjectSearch(filters);
+  const saveHistory = useSaveHistory();
+  const savedKeyRef = useRef<string>('');
+
+  useEffect(() => {
+    if (!filters.keyword || projects.length === 0) return;
+    const key = JSON.stringify({ keyword: filters.keyword, page: filters.page });
+    if (savedKeyRef.current === key) return;
+    savedKeyRef.current = key;
+    saveHistory.mutate({
+      query_type: 'project_search',
+      query_params: { keyword: filters.keyword, cluster: filters.cluster, actionType: filters.actionType, country: filters.country },
+      result_count: projects.length,
+      results_snapshot: projects.slice(0, 8).map(p => ({ title: p.title, acronym: p.acronym, identifier: p.identifier })),
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [projects, filters.keyword, filters.page]);
 
   const enhanceMutation = useSearchEnhance();
   const [aiEnhanced, setAiEnhanced] = useState(false);

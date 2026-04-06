@@ -1,10 +1,11 @@
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
 
 const ADMIN_EMAIL = 'fredanaman@proton.me';
 
 export default function Header() {
   const { user, openAuthModal, signOut } = useAuth();
+  const location = useLocation();
 
   return (
     <header
@@ -48,6 +49,15 @@ export default function Header() {
 
           {user ? (
             <div className="flex items-center gap-2">
+              <Link
+                to="/history"
+                className="text-sm font-medium no-underline transition-colors duration-200 hidden sm:block"
+                style={{ color: location.pathname === '/history' ? '#222222' : '#6a6a6a' }}
+                onMouseEnter={e => ((e.currentTarget as HTMLElement).style.color = '#222222')}
+                onMouseLeave={e => ((e.currentTarget as HTMLElement).style.color = location.pathname === '/history' ? '#222222' : '#6a6a6a')}
+              >
+                History
+              </Link>
               <span className="text-xs hidden sm:block max-w-[140px] truncate" style={{ color: '#6a6a6a' }}>
                 {user.email}
               </span>

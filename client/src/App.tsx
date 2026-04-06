@@ -16,6 +16,7 @@ import KnowledgeGraphPage from './pages/KnowledgeGraphPage';
 import OrgPage from './pages/OrgPage';
 import EventsPage from './pages/EventsPage';
 import MscaPage from './pages/MscaPage';
+import HistoryPage from './pages/HistoryPage';
 import AuthModal from './components/auth/AuthModal';
 import { useAuth } from './contexts/AuthContext';
 
@@ -43,6 +44,7 @@ export default function App() {
           <Route path="/org/:encodedName" element={<OrgPage />} />
           <Route path="/events" element={<EventsPage />} />
           <Route path="/msca" element={<MscaPage />} />
+          <Route path="/history" element={<HistoryPage />} />
         </Routes>
       </main>
       <Footer />
