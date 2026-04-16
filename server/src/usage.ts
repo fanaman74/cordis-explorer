@@ -2,7 +2,7 @@ import { createClient } from '@supabase/supabase-js';
 
 export type ToolName = 'grant_search' | 'profile_match' | 'grant_match' | 'partner_match' | 'search_enhance' | 'partner_search';
 
-export const FREE_LIMIT = 1;
+export const FREE_LIMIT = 9999;
 
 const COL: Record<ToolName, string> = {
   grant_search: 'grant_search_count',
@@ -41,7 +41,10 @@ export async function checkAndIncrementUsage(userId: string, tool: ToolName): Pr
     .eq('user_id', userId)
     .single();
 
-  if (error) throw new Error(`Usage check failed: ${error.message}`);
+  if (error) {
+    console.warn('[usage] check failed (allowing request):', error.message);
+    return; // fail open — don't block the user
+  }
 
   const current: number = (data as unknown as Record<string, number>)[col] ?? 0;
 
