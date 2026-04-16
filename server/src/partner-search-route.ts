@@ -6,125 +6,86 @@ import { getCacheKey, getCached, setCache } from './cache.js';
 
 export const partnerSearchRouter = Router();
 
-const FT_API = 'https://api.tech.ec.europa.eu/search-api/prod/rest/search';
 const SPARQL_ENDPOINT = process.env.SPARQL_ENDPOINT || 'https://cordis.europa.eu/datalab/sparql';
 
-const CLUSTER_PREFIXES: Record<string, string> = {
-  '1': 'HORIZON-HEALTH',
-  '2': 'HORIZON-CL2',
-  '3': 'HORIZON-CL3',
-  '4': 'HORIZON-CL4',
-  '5': 'HORIZON-CL5',
-  '6': 'HORIZON-CL6',
+const CLUSTER_KEYWORDS: Record<string, string[]> = {
+  '1': ['health', 'cancer', 'disease', 'medicine', 'clinical', 'pandemic'],
+  '2': ['culture', 'society', 'democracy', 'heritage', 'social', 'migration'],
+  '3': ['security', 'defence', 'cyber', 'border', 'resilience', 'disaster'],
+  '4': ['digital', 'ai', 'artificial intelligence', 'data', 'cloud', 'robotics', 'manufacturing'],
+  '5': ['climate', 'energy', 'transport', 'mobility', 'hydrogen', 'renewable', 'emission'],
+  '6': ['food', 'agriculture', 'biodiversity', 'environment', 'ecosystem', 'soil', 'water'],
 };
 
-interface FtProfile {
+interface PartnerProfile {
   id: string;
   orgName: string;
   country: string;
-  callReference?: string;
-  callTitle?: string;
-  type: 'offer' | 'request';
-  summary: string;
+  projectCount: number;
+  recentProjects: string[];
   expertise: string[];
-  deadline?: string;
   ftPortalUrl: string;
 }
 
-interface SparqlEnrichment {
-  projectCount: number;
-  recentProjects: string[];
-}
-
-async function fetchFtProfiles(
-  callId?: string,
+async function searchOrgsBySparql(
+  callRef?: string,
   cluster?: string,
   country?: string,
   page = 1,
-): Promise<{ profiles: FtProfile[]; total: number; callTitle?: string; unavailable?: boolean }> {
+): Promise<{ profiles: PartnerProfile[]; total: number }> {
   const PAGE_SIZE = 20;
-  const start = (page - 1) * PAGE_SIZE;
+  const offset = (page - 1) * PAGE_SIZE;
 
-  const query: Record<string, string> = {
-    scope: 'partnerSearch',
-    size: String(PAGE_SIZE),
-    start: String(start),
-    languages: 'en',
-  };
+  // Build keyword filters from cluster or callRef
+  let keywordFilter = '';
+  const keywords: string[] = [];
 
-  const filters: string[] = [];
-  if (callId) filters.push(`callId=${callId}`);
-  if (cluster && CLUSTER_PREFIXES[cluster]) {
-    filters.push(`callId=*${CLUSTER_PREFIXES[cluster]}*`);
-  }
-  if (country) filters.push(`country=${country}`);
-
-  if (filters.length) query['filterQuery'] = filters.join(',');
-
-  const url = `${FT_API}?${new URLSearchParams(query)}`;
-
-  try {
-    const resp = await fetch(url, {
-      headers: { Accept: 'application/json' },
-      signal: AbortSignal.timeout(8000),
-    });
-
-    if (!resp.ok) {
-      console.warn(`[partner-search] F&T API returned ${resp.status}`);
-      return { profiles: [], total: 0, unavailable: true };
+  if (callRef && callRef.trim()) {
+    // Extract keywords from call reference e.g. HORIZON-CL4-2026-TWIN-01
+    const parts = callRef.toUpperCase().replace(/HORIZON-?/i, '').split(/[-_]/);
+    for (const p of parts) {
+      if (p.length > 2 && !/^\d+$/.test(p)) keywords.push(p.toLowerCase());
     }
-
-    const json = await resp.json() as any;
-    const hits: any[] = json?.results ?? json?.hits?.hits ?? [];
-    const total: number = json?.total ?? json?.hits?.total?.value ?? 0;
-
-    const profiles: FtProfile[] = hits.map((h: any) => {
-      const src = h._source ?? h;
-      return {
-        id: String(h._id ?? src.id ?? Math.random()),
-        orgName: src.legalName ?? src.organisationName ?? src.name ?? 'Unknown',
-        country: src.country ?? src.countryCode ?? '',
-        callReference: src.callIdentifier ?? src.callReference,
-        callTitle: src.callTitle,
-        type: (src.type === 'offer' || src.requestType === 'offer') ? 'offer' : 'request',
-        summary: src.description ?? src.partnershipProposal ?? src.summary ?? '',
-        expertise: Array.isArray(src.expertise) ? src.expertise
-          : typeof src.expertise === 'string' ? [src.expertise]
-          : [],
-        deadline: src.deadline,
-        ftPortalUrl: src.url ?? `https://ec.europa.eu/research/participants/portal/desktop/en/organisations/partner-search.html${callId ? `?callId=${callId}` : ''}`,
-      };
-    });
-
-    return { profiles, total, callTitle: hits[0]?._source?.callTitle };
-  } catch (err) {
-    console.warn('[partner-search] F&T API unavailable:', err);
-    return { profiles: [], total: 0, unavailable: true };
   }
-}
 
-async function enrichWithSparql(orgNames: string[]): Promise<Record<string, SparqlEnrichment>> {
-  if (!orgNames.length) return {};
-  const nameFilters = orgNames
-    .slice(0, 20)
-    .map(n => `"${n.replace(/"/g, '\\"')}"`)
-    .join(', ');
+  if (cluster && CLUSTER_KEYWORDS[cluster]) {
+    keywords.push(...CLUSTER_KEYWORDS[cluster].slice(0, 3));
+  }
+
+  if (!keywords.length) keywords.push('research');
+
+  // Use first 3 keywords
+  const kw = keywords.slice(0, 3);
+  keywordFilter = kw.map(k => `CONTAINS(LCASE(STR(?title)), '${k.replace(/'/g, "\\'")}')`).join(' || ');
+
+  const countryClause = country
+    ? `?org eurio:hasSite ?_cs . ?_cs eurio:hasGeographicalLocation ?_cc . ?_cc a eurio:Country . ?_cc eurio:name '${country.replace(/'/g, "\\'")}' .`
+    : '';
 
   const query = `
 PREFIX eurio: <http://data.europa.eu/s66#>
-SELECT ?orgName (COUNT(DISTINCT ?project) AS ?projectCount)
-       (GROUP_CONCAT(DISTINCT ?title; SEPARATOR="||") AS ?titles)
+
+SELECT ?orgName ?countryName (COUNT(DISTINCT ?project) AS ?projectCount)
+       (GROUP_CONCAT(DISTINCT ?title; SEPARATOR="||") AS ?projectTitles)
 WHERE {
+  ?project a eurio:Project .
+  ?project eurio:title ?title .
+  FILTER(${keywordFilter})
+  ?project eurio:hasInvolvedParty ?role .
+  ?role eurio:isRoleOf ?org .
   ?org eurio:legalName ?orgName .
-  FILTER(?orgName IN (${nameFilters}))
+  ${countryClause}
   OPTIONAL {
-    ?project a eurio:Project .
-    ?project eurio:hasInvolvedParty ?role .
-    ?role eurio:isRoleOf ?org .
-    ?project eurio:title ?title .
+    ?org eurio:hasSite ?site .
+    ?site eurio:hasGeographicalLocation ?geo .
+    ?geo a eurio:Country .
+    ?geo eurio:name ?countryName .
   }
 }
-GROUP BY ?orgName
+GROUP BY ?orgName ?countryName
+ORDER BY DESC(?projectCount)
+LIMIT ${PAGE_SIZE}
+OFFSET ${offset}
   `.trim();
 
   try {
@@ -135,24 +96,54 @@ GROUP BY ?orgName
         'Accept': 'application/sparql-results+json',
       },
       body: new URLSearchParams({ query }),
-      signal: AbortSignal.timeout(10000),
+      signal: AbortSignal.timeout(15000),
     });
-    if (!resp.ok) return {};
+
+    if (!resp.ok) return { profiles: [], total: 0 };
+
     const json = await resp.json() as any;
     const bindings: any[] = json.results?.bindings ?? [];
-    const result: Record<string, SparqlEnrichment> = {};
-    for (const b of bindings) {
-      const name = b.orgName?.value ?? '';
-      if (!name) continue;
-      result[name] = {
-        projectCount: parseInt(b.projectCount?.value ?? '0', 10),
-        recentProjects: (b.titles?.value ?? '').split('||').filter(Boolean).slice(0, 3),
-      };
-    }
-    return result;
-  } catch {
-    return {};
+
+    const profiles: PartnerProfile[] = bindings
+      .filter((b: any) => b.orgName?.value)
+      .map((b: any) => {
+        const name = b.orgName.value;
+        const titles = (b.projectTitles?.value ?? '').split('||').filter(Boolean);
+        // Derive expertise tags from project titles
+        const expertise = deriveExpertise(titles, kw);
+        return {
+          id: encodeURIComponent(name),
+          orgName: name,
+          country: b.countryName?.value ?? '',
+          projectCount: parseInt(b.projectCount?.value ?? '0', 10),
+          recentProjects: titles.slice(0, 3),
+          expertise,
+          ftPortalUrl: `https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/opportunities/partner-search${callRef ? `?callId=${encodeURIComponent(callRef)}` : ''}`,
+        };
+      });
+
+    return { profiles, total: profiles.length + offset + (profiles.length === PAGE_SIZE ? 1 : 0) };
+  } catch (err) {
+    console.warn('[partner-search] SPARQL error:', err);
+    return { profiles: [], total: 0 };
   }
+}
+
+function deriveExpertise(titles: string[], baseKeywords: string[]): string[] {
+  const tags = new Set<string>(baseKeywords.slice(0, 2).map(k => k.charAt(0).toUpperCase() + k.slice(1)));
+  const domainWords = [
+    'AI', 'ML', 'IoT', 'blockchain', 'cloud', 'digital', 'health', 'energy',
+    'climate', 'data', 'security', 'robotics', 'materials', 'pharma', 'biotech',
+    'agri', 'transport', 'mobility', 'manufacturing', 'social', 'education',
+  ];
+  for (const t of titles.slice(0, 5)) {
+    for (const dw of domainWords) {
+      if (t.toLowerCase().includes(dw.toLowerCase()) && tags.size < 5) {
+        tags.add(dw);
+      }
+    }
+  }
+  return [...tags].slice(0, 4);
 }
 
 partnerSearchRouter.get('/', requireAuth, async (req: Request, res: Response) => {
@@ -162,30 +153,14 @@ partnerSearchRouter.get('/', requireAuth, async (req: Request, res: Response) =>
   try {
     await checkAndIncrementUsage(req.userId!, 'partner_search');
 
-    const cacheKey = getCacheKey(`partner-search:${callId}:${cluster}:${country}:${page}`);
+    const cacheKey = getCacheKey(`partner-search-v2:${callId}:${cluster}:${country}:${page}`);
     const cached = getCached(cacheKey);
     if (cached) { res.json(cached); return; }
 
-    const { profiles, total, callTitle, unavailable } = await fetchFtProfiles(callId, cluster, country, pageNum);
+    const { profiles, total } = await searchOrgsBySparql(callId, cluster, country, pageNum);
 
-    if (unavailable) {
-      const fallback = { profiles: [], total: 0, page: pageNum, ftUnavailable: true };
-      res.json(fallback);
-      return;
-    }
-
-    const orgNames = profiles.slice(0, 20).map(p => p.orgName);
-    const enrichment = await enrichWithSparql(orgNames);
-
-    const enrichedProfiles = profiles.map(p => ({
-      ...p,
-      cordisProjectCount: enrichment[p.orgName]?.projectCount,
-      cordisRecentProjects: enrichment[p.orgName]?.recentProjects,
-      cordisEnriched: p.orgName in enrichment,
-    }));
-
-    const payload = { profiles: enrichedProfiles, total, page: pageNum, callTitle };
-    setCache(cacheKey, payload);
+    const payload = { profiles, total, page: pageNum, source: 'cordis' };
+    if (profiles.length) setCache(cacheKey, payload);
     res.json(payload);
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Partner search failed';

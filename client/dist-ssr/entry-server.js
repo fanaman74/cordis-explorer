@@ -4791,20 +4791,15 @@ function PartnerCard({ profile }) {
         /* @__PURE__ */ jsx("h3", { className: "font-semibold text-[var(--color-text-primary)] text-sm", children: profile.orgName }),
         /* @__PURE__ */ jsx("p", { className: "text-xs text-[var(--color-text-secondary)] mt-0.5", children: profile.country })
       ] }),
-      /* @__PURE__ */ jsx("span", { className: `shrink-0 text-xs px-2 py-0.5 rounded-full font-medium ${profile.type === "offer" ? "bg-green-500/10 text-green-400 border border-green-500/20" : "bg-blue-500/10 text-blue-400 border border-blue-500/20"}`, children: profile.type === "offer" ? "Offering" : "Seeking" })
+      profile.projectCount > 0 && /* @__PURE__ */ jsxs("span", { className: "shrink-0 text-xs px-2 py-0.5 rounded-full font-medium bg-blue-500/10 text-blue-400 border border-blue-500/20", children: [
+        profile.projectCount,
+        " EU projects"
+      ] })
     ] }),
-    profile.callReference && /* @__PURE__ */ jsxs("p", { className: "text-xs text-[var(--color-text-secondary)]", children: [
-      "Call: ",
-      /* @__PURE__ */ jsx("span", { className: "font-mono text-[var(--color-text-primary)]", children: profile.callReference })
-    ] }),
-    /* @__PURE__ */ jsx("p", { className: "text-sm text-[var(--color-text-secondary)] leading-relaxed line-clamp-3", children: profile.summary }),
     profile.expertise.length > 0 && /* @__PURE__ */ jsx("div", { className: "flex flex-wrap gap-1.5", children: profile.expertise.slice(0, 5).map((tag) => /* @__PURE__ */ jsx("span", { className: "text-xs px-2 py-0.5 rounded-full bg-[var(--color-bg-input)] text-[var(--color-text-secondary)] border border-[var(--color-border)]", children: tag }, tag)) }),
-    profile.cordisEnriched && profile.cordisProjectCount !== void 0 && /* @__PURE__ */ jsxs("div", { className: "pt-2 border-t border-[var(--color-border)] space-y-1", children: [
-      /* @__PURE__ */ jsxs("p", { className: "text-xs text-[var(--color-text-secondary)]", children: [
-        /* @__PURE__ */ jsx("span", { className: "font-semibold text-[var(--color-text-primary)]", children: profile.cordisProjectCount }),
-        " EU projects in CORDIS"
-      ] }),
-      profile.cordisRecentProjects && profile.cordisRecentProjects.length > 0 && /* @__PURE__ */ jsx("ul", { className: "text-xs text-[var(--color-text-secondary)] space-y-0.5 list-disc list-inside", children: profile.cordisRecentProjects.map((t, i) => /* @__PURE__ */ jsx("li", { className: "truncate", children: t }, i)) })
+    profile.recentProjects && profile.recentProjects.length > 0 && /* @__PURE__ */ jsxs("div", { className: "pt-2 border-t border-[var(--color-border)] space-y-1", children: [
+      /* @__PURE__ */ jsx("p", { className: "text-xs font-medium text-[var(--color-text-secondary)]", children: "Recent projects:" }),
+      /* @__PURE__ */ jsx("ul", { className: "text-xs text-[var(--color-text-secondary)] space-y-0.5 list-disc list-inside", children: profile.recentProjects.map((t, i) => /* @__PURE__ */ jsx("li", { className: "truncate", children: t }, i)) })
     ] }),
     /* @__PURE__ */ jsx(
       "a",
@@ -4813,7 +4808,7 @@ function PartnerCard({ profile }) {
         target: "_blank",
         rel: "noopener noreferrer",
         className: "inline-flex items-center gap-1 text-xs font-medium text-[var(--color-eu-blue-lighter)] hover:underline",
-        children: "View on F&T Portal →"
+        children: "Find on F&T Portal →"
       }
     )
   ] });
@@ -4860,7 +4855,7 @@ function PartnerSearchPage() {
   return /* @__PURE__ */ jsxs("div", { className: "max-w-6xl mx-auto px-4 py-12", children: [
     /* @__PURE__ */ jsxs("div", { className: "mb-8", children: [
       /* @__PURE__ */ jsx("h1", { className: "text-2xl font-bold text-[var(--color-text-primary)] mb-2", children: "Partner Search Hub" }),
-      /* @__PURE__ */ jsx("p", { className: "text-[var(--color-text-secondary)] text-sm", children: "Find organisations actively seeking or offering EU research partnership opportunities via the F&T Portal, enriched with their CORDIS project track record." })
+      /* @__PURE__ */ jsx("p", { className: "text-[var(--color-text-secondary)] text-sm", children: "Find organisations with a proven track record in EU research projects. Filter by Horizon Europe cluster or call reference." })
     ] }),
     /* @__PURE__ */ jsxs("div", { className: "space-y-3 mb-8 p-4 rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-card)]", children: [
       /* @__PURE__ */ jsxs("div", { className: "flex flex-wrap gap-3 items-end", children: [
@@ -4907,27 +4902,9 @@ function PartnerSearchPage() {
         }
       )
     ] }),
-    (data == null ? void 0 : data.ftUnavailable) && /* @__PURE__ */ jsxs("div", { className: "mb-6 p-4 rounded-xl bg-amber-500/10 border border-amber-500/30 text-sm", children: [
-      /* @__PURE__ */ jsx("p", { className: "text-amber-300 font-medium mb-1", children: "F&T Portal API unavailable" }),
-      /* @__PURE__ */ jsxs("p", { className: "text-[var(--color-text-secondary)]", children: [
-        "Browse partnership requests directly on the",
-        " ",
-        /* @__PURE__ */ jsx(
-          "a",
-          {
-            href: "https://ec.europa.eu/research/participants/portal/desktop/en/organisations/partner-search.html",
-            target: "_blank",
-            rel: "noopener noreferrer",
-            className: "text-amber-300 underline",
-            children: "F&T Portal partner search"
-          }
-        ),
-        "."
-      ] })
-    ] }),
     isLoading && /* @__PURE__ */ jsx(Spinner, {}),
     error && /* @__PURE__ */ jsx("p", { className: "text-red-400 text-sm", children: error.message }),
-    !isLoading && data && !data.ftUnavailable && /* @__PURE__ */ jsxs(Fragment, { children: [
+    !isLoading && data && /* @__PURE__ */ jsxs(Fragment, { children: [
       data.callTitle && /* @__PURE__ */ jsxs("p", { className: "text-sm text-[var(--color-text-secondary)] mb-4", children: [
         "Call: ",
         /* @__PURE__ */ jsx("span", { className: "text-[var(--color-text-primary)] font-medium", children: data.callTitle })

@@ -19,24 +19,12 @@ function PartnerCard({ profile }: { profile: PartnerProfile }) {
           <h3 className="font-semibold text-[var(--color-text-primary)] text-sm">{profile.orgName}</h3>
           <p className="text-xs text-[var(--color-text-secondary)] mt-0.5">{profile.country}</p>
         </div>
-        <span className={`shrink-0 text-xs px-2 py-0.5 rounded-full font-medium ${
-          profile.type === 'offer'
-            ? 'bg-green-500/10 text-green-400 border border-green-500/20'
-            : 'bg-blue-500/10 text-blue-400 border border-blue-500/20'
-        }`}>
-          {profile.type === 'offer' ? 'Offering' : 'Seeking'}
-        </span>
+        {profile.projectCount > 0 && (
+          <span className="shrink-0 text-xs px-2 py-0.5 rounded-full font-medium bg-blue-500/10 text-blue-400 border border-blue-500/20">
+            {profile.projectCount} EU projects
+          </span>
+        )}
       </div>
-
-      {profile.callReference && (
-        <p className="text-xs text-[var(--color-text-secondary)]">
-          Call: <span className="font-mono text-[var(--color-text-primary)]">{profile.callReference}</span>
-        </p>
-      )}
-
-      <p className="text-sm text-[var(--color-text-secondary)] leading-relaxed line-clamp-3">
-        {profile.summary}
-      </p>
 
       {profile.expertise.length > 0 && (
         <div className="flex flex-wrap gap-1.5">
@@ -48,18 +36,14 @@ function PartnerCard({ profile }: { profile: PartnerProfile }) {
         </div>
       )}
 
-      {profile.cordisEnriched && profile.cordisProjectCount !== undefined && (
+      {profile.recentProjects && profile.recentProjects.length > 0 && (
         <div className="pt-2 border-t border-[var(--color-border)] space-y-1">
-          <p className="text-xs text-[var(--color-text-secondary)]">
-            <span className="font-semibold text-[var(--color-text-primary)]">{profile.cordisProjectCount}</span> EU projects in CORDIS
-          </p>
-          {profile.cordisRecentProjects && profile.cordisRecentProjects.length > 0 && (
-            <ul className="text-xs text-[var(--color-text-secondary)] space-y-0.5 list-disc list-inside">
-              {profile.cordisRecentProjects.map((t, i) => (
-                <li key={i} className="truncate">{t}</li>
-              ))}
-            </ul>
-          )}
+          <p className="text-xs font-medium text-[var(--color-text-secondary)]">Recent projects:</p>
+          <ul className="text-xs text-[var(--color-text-secondary)] space-y-0.5 list-disc list-inside">
+            {profile.recentProjects.map((t, i) => (
+              <li key={i} className="truncate">{t}</li>
+            ))}
+          </ul>
         </div>
       )}
 
@@ -69,7 +53,7 @@ function PartnerCard({ profile }: { profile: PartnerProfile }) {
         rel="noopener noreferrer"
         className="inline-flex items-center gap-1 text-xs font-medium text-[var(--color-eu-blue-lighter)] hover:underline"
       >
-        View on F&T Portal →
+        Find on F&T Portal →
       </a>
     </div>
   );
@@ -129,7 +113,7 @@ export default function PartnerSearchPage() {
           Partner Search Hub
         </h1>
         <p className="text-[var(--color-text-secondary)] text-sm">
-          Find organisations actively seeking or offering EU research partnership opportunities via the F&T Portal, enriched with their CORDIS project track record.
+          Find organisations with a proven track record in EU research projects. Filter by Horizon Europe cluster or call reference.
         </p>
       </div>
 
@@ -168,29 +152,12 @@ export default function PartnerSearchPage() {
         />
       </div>
 
-      {/* F&T unavailable fallback */}
-      {data?.ftUnavailable && (
-        <div className="mb-6 p-4 rounded-xl bg-amber-500/10 border border-amber-500/30 text-sm">
-          <p className="text-amber-300 font-medium mb-1">F&T Portal API unavailable</p>
-          <p className="text-[var(--color-text-secondary)]">
-            Browse partnership requests directly on the{' '}
-            <a
-              href="https://ec.europa.eu/research/participants/portal/desktop/en/organisations/partner-search.html"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-amber-300 underline"
-            >
-              F&T Portal partner search
-            </a>.
-          </p>
-        </div>
-      )}
 
       {/* Results */}
       {isLoading && <Spinner />}
       {error && <p className="text-red-400 text-sm">{error.message}</p>}
 
-      {!isLoading && data && !data.ftUnavailable && (
+      {!isLoading && data && (
         <>
           {data.callTitle && (
             <p className="text-sm text-[var(--color-text-secondary)] mb-4">
