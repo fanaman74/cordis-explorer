@@ -7024,7 +7024,7 @@ function timeAgo(iso) {
 function HistoryPage() {
   const { user, openAuthModal } = useAuth();
   const [activeTab, setActiveTab] = useState("all");
-  const { data, isLoading } = useHistory(activeTab === "all" ? void 0 : activeTab);
+  const { data, isLoading, error } = useHistory(activeTab === "all" ? void 0 : activeTab);
   const deleteHistory = useDeleteHistory();
   useEffect(() => {
     document.title = "Search History — CORDIS Explorer";
@@ -7070,12 +7070,13 @@ function HistoryPage() {
       tab.value
     )) }),
     isLoading && /* @__PURE__ */ jsx(Spinner, {}),
-    !isLoading && items.length === 0 && /* @__PURE__ */ jsxs("div", { className: "text-center py-20", children: [
+    !isLoading && error && /* @__PURE__ */ jsx("p", { className: "text-sm text-red-400 py-8 text-center", children: error.message }),
+    !isLoading && !error && items.length === 0 && /* @__PURE__ */ jsxs("div", { className: "text-center py-20", children: [
       /* @__PURE__ */ jsx("p", { className: "text-4xl mb-3", children: "📭" }),
       /* @__PURE__ */ jsx("p", { className: "text-sm text-[var(--color-text-secondary)]", children: "No searches yet. Start exploring to build your history." }),
       /* @__PURE__ */ jsx(Link, { to: "/", className: "inline-block mt-4 text-sm text-[var(--color-eu-blue-lighter)] hover:underline", children: "Go to home →" })
     ] }),
-    !isLoading && items.length > 0 && /* @__PURE__ */ jsx("div", { className: "space-y-3", children: items.map((entry) => {
+    !isLoading && !error && items.length > 0 && /* @__PURE__ */ jsx("div", { className: "space-y-3", children: items.map((entry) => {
       const meta = TYPE_META[entry.query_type];
       const snapshot = entry.results_snapshot ?? [];
       return /* @__PURE__ */ jsx("div", { className: "rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-card)] p-4 group", children: /* @__PURE__ */ jsxs("div", { className: "flex items-start gap-3", children: [

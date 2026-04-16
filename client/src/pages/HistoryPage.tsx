@@ -81,7 +81,7 @@ function timeAgo(iso: string): string {
 export default function HistoryPage() {
   const { user, openAuthModal } = useAuth();
   const [activeTab, setActiveTab] = useState<QueryType | 'all'>('all');
-  const { data, isLoading } = useHistory(activeTab === 'all' ? undefined : activeTab);
+  const { data, isLoading, error } = useHistory(activeTab === 'all' ? undefined : activeTab);
   const deleteHistory = useDeleteHistory();
 
   useEffect(() => {
@@ -138,7 +138,11 @@ export default function HistoryPage() {
 
       {isLoading && <Spinner />}
 
-      {!isLoading && items.length === 0 && (
+      {!isLoading && error && (
+        <p className="text-sm text-red-400 py-8 text-center">{(error as Error).message}</p>
+      )}
+
+      {!isLoading && !error && items.length === 0 && (
         <div className="text-center py-20">
           <p className="text-4xl mb-3">📭</p>
           <p className="text-sm text-[var(--color-text-secondary)]">No searches yet. Start exploring to build your history.</p>
@@ -146,7 +150,7 @@ export default function HistoryPage() {
         </div>
       )}
 
-      {!isLoading && items.length > 0 && (
+      {!isLoading && !error && items.length > 0 && (
         <div className="space-y-3">
           {items.map(entry => {
             const meta = TYPE_META[entry.query_type];
