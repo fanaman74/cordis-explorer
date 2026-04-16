@@ -22,12 +22,14 @@ export default function AuthModal() {
     if (tab === 'signin') {
       const { error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) setError(error.message);
+      else closeAuthModal();
     } else {
       const { error } = await supabase.auth.signUp({ email, password });
       if (error) {
         setError(error.message);
       } else {
-        setMessage('Check your email for a confirmation link.');
+        setMessage('Account created — you are now signed in.');
+        closeAuthModal();
       }
     }
     setLoading(false);
@@ -65,7 +67,7 @@ export default function AuthModal() {
         <div className="mb-6">
           <div
             className="w-10 h-10 rounded-xl flex items-center justify-center text-white font-bold text-sm mb-4"
-            style={{ background: '#ff385c' }}
+            style={{ background: '#003399' }}
           >
             EU
           </div>
@@ -102,11 +104,26 @@ export default function AuthModal() {
         <form onSubmit={handleSubmit} className="space-y-3">
           <div>
             <label className="field-label">Email</label>
-            <input type="email" required value={email} onChange={e => setEmail(e.target.value)} placeholder="you@example.com" className="gm-input" />
+            <input
+              type="email"
+              required
+              value={email}
+              onChange={e => setEmail(e.target.value)}
+              placeholder="you@example.com"
+              className="gm-input"
+            />
           </div>
           <div>
             <label className="field-label">Password</label>
-            <input type="password" required minLength={6} value={password} onChange={e => setPassword(e.target.value)} placeholder="••••••••" className="gm-input" />
+            <input
+              type="password"
+              required
+              minLength={6}
+              value={password}
+              onChange={e => setPassword(e.target.value)}
+              placeholder="••••••••"
+              className="gm-input"
+            />
           </div>
 
           {error && (

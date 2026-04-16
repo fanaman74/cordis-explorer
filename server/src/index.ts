@@ -76,6 +76,17 @@ app.get('/api/health', (_req, res) => {
   res.json({ status: 'ok' });
 });
 
+// Public config endpoint — lets the client confirm it has real credentials
+app.get('/api/config', (_req, res) => {
+  const url = process.env.VITE_SUPABASE_URL ?? process.env.SUPABASE_URL ?? '';
+  const key = process.env.VITE_SUPABASE_ANON_KEY ?? process.env.SUPABASE_ANON_KEY ?? '';
+  res.json({
+    supabaseConfigured: !!url && !url.includes('placeholder'),
+    supabaseUrl: url,
+    supabaseAnonKey: key,
+  });
+});
+
 // In production, serve the built React frontend with SSR
 const clientDistPath = resolve(__dirname, '../../client/dist');
 const ssrDistPath = resolve(__dirname, '../../client/dist-ssr');
@@ -103,19 +114,38 @@ if (existsSync(ssrEntryPath) && existsSync(htmlPath)) {
   console.log('[ssr] SSR bundle not found, serving as SPA');
 }
 
+// Runtime config injected into every HTML response — ensures VITE_ vars
+// don't need to be present at build time.
+function injectRuntimeConfig(html: string): string {
+  const config = {
+    SUPABASE_URL: process.env.VITE_SUPABASE_URL ?? process.env.SUPABASE_URL ?? '',
+    SUPABASE_ANON_KEY: process.env.VITE_SUPABASE_ANON_KEY ?? process.env.SUPABASE_ANON_KEY ?? '',
+  };
+  const script = `<script>window.__RUNTIME_CONFIG__ = ${JSON.stringify(config)};</script>`;
+  return html.replace('</head>', `${script}</head>`);
+}
+
 app.get('*', (req, res) => {
   if (ssrRender && htmlTemplate) {
     try {
       const appHtml = ssrRender(req.originalUrl);
-      const html = htmlTemplate.replace('<div id="root"></div>', `<div id="root">${appHtml}</div>`);
+      const html = injectRuntimeConfig(
+        htmlTemplate.replace('<div id="root"></div>', `<div id="root">${appHtml}</div>`)
+      );
       res.status(200).set({ 'Content-Type': 'text/html' }).send(html);
       return;
     } catch (err) {
       console.error('[ssr] Render error, falling back to SPA:', err);
     }
   }
-  // Fallback: serve the SPA shell
-  res.sendFile(resolve(clientDistPath, 'index.html'));
+  // Fallback: serve the SPA shell with runtime config injected
+  const shellPath = resolve(clientDistPath, 'index.html');
+  try {
+    const shell = readFileSync(shellPath, 'utf-8');
+    res.status(200).set({ 'Content-Type': 'text/html' }).send(injectRuntimeConfig(shell));
+  } catch {
+    res.sendFile(shellPath);
+  }
 });
 
 app.listen(PORT, () => {

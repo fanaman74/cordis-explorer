@@ -20,8 +20,8 @@ grantMatchRouter.post('/', requireAuth, async (req: Request, res: Response) => {
     return;
   }
 
-  if (!process.env.ANTHROPIC_API_KEY) {
-    res.status(500).json({ error: 'ANTHROPIC_API_KEY not configured on server' });
+  if (!process.env.OPENROUTER_API_KEY) {
+    res.status(500).json({ error: 'OPENROUTER_API_KEY not configured on server' });
     return;
   }
 

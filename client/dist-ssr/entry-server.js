@@ -1,6 +1,6 @@
 import { jsx, jsxs, Fragment } from "react/jsx-runtime";
 import * as React from "react";
-import React__default, { createContext, useContext, useEffect, useState, useRef, useCallback, lazy, Suspense } from "react";
+import React__default, { createContext, useContext, useEffect, useState, useRef, useCallback, lazy, Suspense, useMemo } from "react";
 import { renderToString } from "react-dom/server";
 import { useQuery, keepPreviousData, useMutation, useQueryClient, QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { stripBasename, UNSAFE_warning, UNSAFE_invariant, matchPath, joinPaths, Action } from "@remix-run/router";
@@ -597,9 +597,13 @@ function encodeLocation(to) {
   };
 }
 const ABSOLUTE_URL_REGEX = /^(?:[a-z][a-z0-9+.-]*:|\/\/)/i;
-const supabaseUrl = "https://swmvjiygqsuctoltoosi.supabase.co";
-const supabaseAnonKey = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN3bXZqaXlncXN1Y3RvbHRvb3NpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM2Njc4MDIsImV4cCI6MjA4OTI0MzgwMn0.DnJPprVjeqYlfMZXGg8No4zO7UBbj4-Brsf6jAySKQo";
-const supabase = createClient(supabaseUrl, supabaseAnonKey);
+const runtimeConfig = typeof window !== "undefined" ? window.__RUNTIME_CONFIG__ : void 0;
+const supabaseUrl = (runtimeConfig == null ? void 0 : runtimeConfig.SUPABASE_URL) || "https://swmvjiygqsuctoltoosi.supabase.co";
+const supabaseAnonKey = (runtimeConfig == null ? void 0 : runtimeConfig.SUPABASE_ANON_KEY) || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN3bXZqaXlncXN1Y3RvbHRvb3NpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM2Njc4MDIsImV4cCI6MjA4OTI0MzgwMn0.DnJPprVjeqYlfMZXGg8No4zO7UBbj4-Brsf6jAySKQo";
+const supabase = createClient(
+  supabaseUrl,
+  supabaseAnonKey
+);
 const AuthContext = createContext(null);
 function useAuth() {
   const ctx = useContext(AuthContext);
@@ -609,6 +613,7 @@ function useAuth() {
 const ADMIN_EMAIL$1 = "fredanaman@proton.me";
 function Header() {
   const { user, openAuthModal, signOut } = useAuth();
+  const location = useLocation();
   return /* @__PURE__ */ jsx(
     "header",
     {
@@ -652,6 +657,17 @@ function Header() {
             }
           ),
           user ? /* @__PURE__ */ jsxs("div", { className: "flex items-center gap-2", children: [
+            /* @__PURE__ */ jsx(
+              Link,
+              {
+                to: "/history",
+                className: "text-sm font-medium no-underline transition-colors duration-200 hidden sm:block",
+                style: { color: location.pathname === "/history" ? "#222222" : "#6a6a6a" },
+                onMouseEnter: (e) => e.currentTarget.style.color = "#222222",
+                onMouseLeave: (e) => e.currentTarget.style.color = location.pathname === "/history" ? "#222222" : "#6a6a6a",
+                children: "History"
+              }
+            ),
             /* @__PURE__ */ jsx("span", { className: "text-xs hidden sm:block max-w-[140px] truncate", style: { color: "#6a6a6a" }, children: user.email }),
             user.email === ADMIN_EMAIL$1 && /* @__PURE__ */ jsx(
               Link,
@@ -856,7 +872,7 @@ function buildProjectSearchQuery(filters) {
       "?project eurio:isFundedBy ?atGrant .",
       "{ ?atGrant eurio:hasFundingSchemeTopic ?atTopic . } UNION { ?atGrant eurio:hasFundingSchemeCall ?atTopic . }",
       "?atTopic rdfs:label ?atTopicLabel .",
-      `FILTER(CONTAINS(UCASE(?atTopicLabel), '-${at}-') || REGEXP(UCASE(?atTopicLabel), '-${at}$'))`
+      `FILTER(CONTAINS(UCASE(?atTopicLabel), '-${at}-') || REGEX(UCASE(?atTopicLabel), '-${at}$'))`
     );
   }
   if (filters.trlMin != null || filters.trlMax != null) {
@@ -1152,7 +1168,7 @@ LIMIT 20
 function buildMscaProjectSearchQuery(keyword, mscaType, page, pageSize) {
   const offset = (page - 1) * pageSize;
   const kwFilter = keyword ? `FILTER(CONTAINS(LCASE(?title), '${escapeString(keyword.toLowerCase())}') || CONTAINS(LCASE(COALESCE(?objective,"")), '${escapeString(keyword.toLowerCase())}'))` : "";
-  const typeFilter = mscaType && mscaType !== "all" ? `FILTER(CONTAINS(UCASE(?mscaLabel), '-${escapeString(mscaType.toUpperCase())}-') || REGEXP(UCASE(?mscaLabel), '-${escapeString(mscaType.toUpperCase())}$'))` : "";
+  const typeFilter = mscaType && mscaType !== "all" ? `FILTER(CONTAINS(UCASE(?mscaLabel), '-${escapeString(mscaType.toUpperCase())}-') || REGEX(UCASE(?mscaLabel), '-${escapeString(mscaType.toUpperCase())}$'))` : "";
   return `
 PREFIX eurio: <http://data.europa.eu/s66#>
 PREFIX rdfs: <http://www.w3.org/2000/01/rdf-schema#>
@@ -2180,6 +2196,59 @@ function useSearchEnhance() {
     }
   });
 }
+async function apiFetch(path, init) {
+  const resp = await fetch(path, init);
+  if (!resp.ok) throw new Error(`History API ${resp.status}`);
+  return resp.json();
+}
+function authHeaders$1(token) {
+  return { "Content-Type": "application/json", Authorization: `Bearer ${token}` };
+}
+function useHistory(type) {
+  const { session } = useAuth();
+  return useQuery({
+    queryKey: ["history", type ?? "all"],
+    queryFn: async () => {
+      const params = new URLSearchParams();
+      if (type) params.set("type", type);
+      return apiFetch(`/api/history?${params}`, {
+        headers: authHeaders$1(session.access_token)
+      });
+    },
+    enabled: !!session,
+    staleTime: 1e3 * 60 * 2
+  });
+}
+function useSaveHistory() {
+  const { session } = useAuth();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (entry) => {
+      if (!session) return null;
+      return apiFetch("/api/history", {
+        method: "POST",
+        headers: authHeaders$1(session.access_token),
+        body: JSON.stringify(entry)
+      });
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["history"] })
+  });
+}
+function useDeleteHistory() {
+  const { session } = useAuth();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (id) => {
+      if (!session) return;
+      const url = id === "all" ? "/api/history" : `/api/history/${id}`;
+      return apiFetch(url, {
+        method: "DELETE",
+        headers: authHeaders$1(session.access_token)
+      });
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["history"] })
+  });
+}
 function SearchBar({ value, onChange }) {
   const [localValue, setLocalValue] = useState(value);
   const timerRef = useRef();
@@ -2494,7 +2563,7 @@ function Badge({ programme }) {
   const config = programmeConfig[programme];
   return /* @__PURE__ */ jsx("span", { className: `inline-flex items-center px-2 py-0.5 rounded text-xs font-medium text-white ${config.bg}`, children: config.label });
 }
-function formatDate$3(date) {
+function formatDate$2(date) {
   if (!date) return "";
   return new Date(date).toLocaleDateString("en-GB", { year: "numeric", month: "short", day: "numeric" });
 }
@@ -2535,8 +2604,8 @@ function ProjectCard({ project }) {
         /* @__PURE__ */ jsxs("div", { className: "mt-3 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-[var(--color-text-secondary)]", children: [
           (project.startDate || project.endDate) && /* @__PURE__ */ jsxs("span", { className: `flex items-center gap-1 ${dateStatus ? DATE_STATUS_CLASS[dateStatus] : ""}`, children: [
             /* @__PURE__ */ jsx("svg", { className: "w-3.5 h-3.5", fill: "none", stroke: "currentColor", viewBox: "0 0 24 24", children: /* @__PURE__ */ jsx("path", { strokeLinecap: "round", strokeLinejoin: "round", strokeWidth: 2, d: "M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" }) }),
-            formatDate$3(project.startDate),
-            project.endDate && ` → ${formatDate$3(project.endDate)}`
+            formatDate$2(project.startDate),
+            project.endDate && ` → ${formatDate$2(project.endDate)}`
           ] }),
           project.coordinator && /* @__PURE__ */ jsxs("span", { className: "flex items-center gap-1", children: [
             /* @__PURE__ */ jsx("svg", { className: "w-3.5 h-3.5", fill: "none", stroke: "currentColor", viewBox: "0 0 24 24", children: /* @__PURE__ */ jsx("path", { strokeLinecap: "round", strokeLinejoin: "round", strokeWidth: 2, d: "M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4" }) }),
@@ -2620,7 +2689,7 @@ function Pagination({ page, pageSize, resultCount, onPageChange }) {
     ] })
   ] });
 }
-const PAGE_SIZE$3 = 25;
+const PAGE_SIZE$2 = 25;
 function filtersFromParams(params) {
   return {
     keyword: params.get("q") || void 0,
@@ -2637,7 +2706,7 @@ function filtersFromParams(params) {
     trlMin: params.get("trlMin") ? parseInt(params.get("trlMin"), 10) : null,
     trlMax: params.get("trlMax") ? parseInt(params.get("trlMax"), 10) : null,
     page: parseInt(params.get("page") || "1", 10),
-    pageSize: PAGE_SIZE$3
+    pageSize: PAGE_SIZE$2
   };
 }
 function filtersToParams(filters) {
@@ -2688,6 +2757,20 @@ function SearchPage() {
     document.title = kw ? `"${kw}" — CORDIS Project Search` : "Search EU Research Projects — CORDIS Explorer";
   }, [filters.keyword]);
   const { data: projects = [], isLoading, isError, error } = useProjectSearch(filters);
+  const saveHistory = useSaveHistory();
+  const savedKeyRef = useRef("");
+  useEffect(() => {
+    if (!filters.keyword || projects.length === 0) return;
+    const key = JSON.stringify({ keyword: filters.keyword, page: filters.page });
+    if (savedKeyRef.current === key) return;
+    savedKeyRef.current = key;
+    saveHistory.mutate({
+      query_type: "project_search",
+      query_params: { keyword: filters.keyword, cluster: filters.cluster, actionType: filters.actionType, country: filters.country },
+      result_count: projects.length,
+      results_snapshot: projects.slice(0, 8).map((p) => ({ title: p.title, acronym: p.acronym, identifier: p.identifier }))
+    });
+  }, [projects, filters.keyword, filters.page]);
   const enhanceMutation = useSearchEnhance();
   const [aiEnhanced, setAiEnhanced] = useState(false);
   const enhancedProjects = ((_a = enhanceMutation.data) == null ? void 0 : _a.results) ?? null;
@@ -2870,7 +2953,7 @@ function PublicationList({ publications }) {
     ] }, i)) })
   ] });
 }
-function formatDate$2(date) {
+function formatDate$1(date) {
   if (!date) return "N/A";
   return new Date(date).toLocaleDateString("en-GB", { year: "numeric", month: "long", day: "numeric" });
 }
@@ -2890,11 +2973,11 @@ function ProjectDetailView({ project, publications }) {
     /* @__PURE__ */ jsxs("div", { className: "grid grid-cols-2 md:grid-cols-4 gap-4", children: [
       /* @__PURE__ */ jsxs("div", { className: "glass-card rounded-lg p-4", children: [
         /* @__PURE__ */ jsx("div", { className: "text-xs text-[var(--color-text-muted)] mb-1", children: "Start Date" }),
-        /* @__PURE__ */ jsx("div", { className: "text-sm font-medium text-[var(--color-text-primary)]", children: formatDate$2(project.startDate) })
+        /* @__PURE__ */ jsx("div", { className: "text-sm font-medium text-[var(--color-text-primary)]", children: formatDate$1(project.startDate) })
       ] }),
       /* @__PURE__ */ jsxs("div", { className: "glass-card rounded-lg p-4", children: [
         /* @__PURE__ */ jsx("div", { className: "text-xs text-[var(--color-text-muted)] mb-1", children: "End Date" }),
-        /* @__PURE__ */ jsx("div", { className: "text-sm font-medium text-[var(--color-text-primary)]", children: formatDate$2(project.endDate) })
+        /* @__PURE__ */ jsx("div", { className: "text-sm font-medium text-[var(--color-text-primary)]", children: formatDate$1(project.endDate) })
       ] }),
       /* @__PURE__ */ jsxs("div", { className: "glass-card rounded-lg p-4", children: [
         /* @__PURE__ */ jsx("div", { className: "text-xs text-[var(--color-text-muted)] mb-1", children: "Coordinator" }),
@@ -4700,7 +4783,7 @@ function usePartnerSearch(filters) {
     staleTime: 1e3 * 60 * 15
   });
 }
-const PAGE_SIZE$2 = 20;
+const PAGE_SIZE$1 = 20;
 function PartnerCard({ profile }) {
   return /* @__PURE__ */ jsxs("div", { className: "rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-card)] p-5 space-y-3 hover:border-[var(--color-eu-blue-lighter)] transition-colors", children: [
     /* @__PURE__ */ jsxs("div", { className: "flex items-start justify-between gap-3", children: [
@@ -4746,6 +4829,21 @@ function PartnerSearchPage() {
   });
   const [callInput, setCallInput] = useState(filters.callId ?? "");
   const { data, isLoading, error } = usePartnerSearch(filters);
+  const saveHistory = useSaveHistory();
+  const savedKeyRef = useRef("");
+  useEffect(() => {
+    const partners = (data == null ? void 0 : data.partners) ?? [];
+    if (!filters.callId || partners.length === 0) return;
+    const key = JSON.stringify(filters);
+    if (savedKeyRef.current === key) return;
+    savedKeyRef.current = key;
+    saveHistory.mutate({
+      query_type: "partner_search",
+      query_params: { callId: filters.callId, country: filters.country, cluster: filters.cluster },
+      result_count: partners.length,
+      results_snapshot: partners.slice(0, 8).map((p) => ({ orgName: p.orgName, country: p.country, projectCount: p.projectCount }))
+    });
+  }, [data, filters.callId]);
   useEffect(() => {
     document.title = "Partner Search — CORDIS Explorer";
   }, []);
@@ -4846,7 +4944,7 @@ function PartnerSearchPage() {
           Pagination,
           {
             page: filters.page,
-            pageSize: PAGE_SIZE$2,
+            pageSize: PAGE_SIZE$1,
             resultCount: data.profiles.length,
             onPageChange: (p) => {
               const next = { ...filters, page: p };
@@ -5367,7 +5465,7 @@ function getVal(b, key) {
   var _a;
   return (_a = b[key]) == null ? void 0 : _a.value;
 }
-function formatDate$1(iso) {
+function formatDate(iso) {
   if (!iso) return null;
   try {
     return new Date(iso).getFullYear().toString();
@@ -6019,7 +6117,7 @@ function KnowledgeGraphPage() {
                           p.acronym && /* @__PURE__ */ jsx("p", { className: "text-[10px] font-bold mb-0.5", style: { color: "#16a34a" }, children: p.acronym }),
                           /* @__PURE__ */ jsx("p", { className: "text-xs leading-snug font-medium", style: { color: "#222222" }, children: p.title.length > 60 ? p.title.slice(0, 58) + "…" : p.title })
                         ] }),
-                        p.startDate && /* @__PURE__ */ jsx("span", { className: "text-[10px] shrink-0 mt-0.5 font-medium", style: { color: "#aaaaaa" }, children: formatDate$1(p.startDate) })
+                        p.startDate && /* @__PURE__ */ jsx("span", { className: "text-[10px] shrink-0 mt-0.5 font-medium", style: { color: "#aaaaaa" }, children: formatDate(p.startDate) })
                       ] }),
                       p.projectId && /* @__PURE__ */ jsx(
                         Link,
@@ -6057,7 +6155,7 @@ function KnowledgeGraphPage() {
                       /* @__PURE__ */ jsx("line", { x1: "3", y1: "10", x2: "21", y2: "10", strokeWidth: 2 })
                     ] }),
                     "Started ",
-                    formatDate$1(liveSelected.meta.startDate)
+                    formatDate(liveSelected.meta.startDate)
                   ] }),
                   (() => {
                     const cnt = connectedNodes(liveSelected.id, "org", nodes, edges).length;
@@ -6245,6 +6343,181 @@ function OrgPage() {
     /* @__PURE__ */ jsx("div", { children: /* @__PURE__ */ jsx(Link, { to: "/search", className: "text-sm text-[var(--color-eu-blue-lighter)] hover:underline", children: "← Back to search" }) })
   ] });
 }
+const WEEKDAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+const MONTHS = [
+  "January",
+  "February",
+  "March",
+  "April",
+  "May",
+  "June",
+  "July",
+  "August",
+  "September",
+  "October",
+  "November",
+  "December"
+];
+const CATEGORY_COLORS = {
+  "EEN Brokerage": "bg-blue-500",
+  "EC Research & Innovation": "bg-purple-500",
+  "MSCA": "bg-amber-500",
+  "ERC": "bg-rose-500",
+  "Horizon Europe": "bg-emerald-500"
+};
+function dotColor(category) {
+  if (!category) return "bg-[var(--color-eu-blue)]";
+  return CATEGORY_COLORS[category] ?? "bg-[var(--color-eu-blue)]";
+}
+function toDateStr(d) {
+  return d.toISOString().slice(0, 10);
+}
+function CalendarView({ events, isLoading }) {
+  const today = /* @__PURE__ */ new Date();
+  const [year, setYear] = useState(today.getFullYear());
+  const [month, setMonth] = useState(today.getMonth());
+  const [selectedDate, setSelectedDate] = useState(null);
+  const eventsByDate = useMemo(() => {
+    const map = /* @__PURE__ */ new Map();
+    for (const ev of events) {
+      if (!ev.startDate) continue;
+      const existing = map.get(ev.startDate) ?? [];
+      existing.push(ev);
+      map.set(ev.startDate, existing);
+    }
+    return map;
+  }, [events]);
+  const { days, firstWeekday } = useMemo(() => {
+    const daysInMonth = new Date(year, month + 1, 0).getDate();
+    let wd = new Date(year, month, 1).getDay();
+    wd = wd === 0 ? 6 : wd - 1;
+    return { days: daysInMonth, firstWeekday: wd };
+  }, [year, month]);
+  function prevMonth() {
+    if (month === 0) {
+      setYear((y) => y - 1);
+      setMonth(11);
+    } else setMonth((m) => m - 1);
+    setSelectedDate(null);
+  }
+  function nextMonth() {
+    if (month === 11) {
+      setYear((y) => y + 1);
+      setMonth(0);
+    } else setMonth((m) => m + 1);
+    setSelectedDate(null);
+  }
+  const todayStr = toDateStr(today);
+  const selectedEvents = selectedDate ? eventsByDate.get(selectedDate) ?? [] : [];
+  const monthStr = `${year}-${String(month + 1).padStart(2, "0")}`;
+  const monthEvents = events.filter((e) => {
+    var _a;
+    return (_a = e.startDate) == null ? void 0 : _a.startsWith(monthStr);
+  });
+  return /* @__PURE__ */ jsxs("div", { className: "rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-card)] overflow-hidden", children: [
+    /* @__PURE__ */ jsxs("div", { className: "flex items-center justify-between px-5 py-4 border-b border-[var(--color-border)]", children: [
+      /* @__PURE__ */ jsx(
+        "button",
+        {
+          onClick: prevMonth,
+          className: "p-1.5 rounded-lg hover:bg-[var(--color-border)] transition-colors text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]",
+          "aria-label": "Previous month",
+          children: "←"
+        }
+      ),
+      /* @__PURE__ */ jsxs("h2", { className: "text-sm font-semibold text-[var(--color-text-primary)]", children: [
+        MONTHS[month],
+        " ",
+        year
+      ] }),
+      /* @__PURE__ */ jsx(
+        "button",
+        {
+          onClick: nextMonth,
+          className: "p-1.5 rounded-lg hover:bg-[var(--color-border)] transition-colors text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]",
+          "aria-label": "Next month",
+          children: "→"
+        }
+      )
+    ] }),
+    /* @__PURE__ */ jsxs("div", { className: "grid grid-cols-1 lg:grid-cols-[1fr_280px] divide-y lg:divide-y-0 lg:divide-x divide-[var(--color-border)]", children: [
+      /* @__PURE__ */ jsxs("div", { className: "p-4", children: [
+        /* @__PURE__ */ jsx("div", { className: "grid grid-cols-7 mb-1", children: WEEKDAYS.map((d) => /* @__PURE__ */ jsx("div", { className: "text-center text-[10px] font-semibold uppercase tracking-wider text-[var(--color-text-secondary)] py-1", children: d }, d)) }),
+        /* @__PURE__ */ jsxs("div", { className: "grid grid-cols-7 gap-px bg-[var(--color-border)]", children: [
+          Array.from({ length: firstWeekday }).map((_, i) => /* @__PURE__ */ jsx("div", { className: "bg-[var(--color-bg-card)] min-h-[52px]" }, `empty-${i}`)),
+          Array.from({ length: days }).map((_, i) => {
+            const day = i + 1;
+            const dateStr = `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
+            const dayEvents = eventsByDate.get(dateStr) ?? [];
+            const isToday = dateStr === todayStr;
+            const isSelected = dateStr === selectedDate;
+            const isPast = dateStr < todayStr;
+            return /* @__PURE__ */ jsxs(
+              "button",
+              {
+                onClick: () => setSelectedDate(isSelected ? null : dateStr),
+                className: `
+                    bg-[var(--color-bg-card)] min-h-[52px] p-1.5 text-left transition-colors relative
+                    hover:bg-[var(--color-border)]/50
+                    ${isSelected ? "ring-2 ring-inset ring-[var(--color-eu-blue)]" : ""}
+                    ${isPast && !isToday ? "opacity-40" : ""}
+                  `,
+                children: [
+                  /* @__PURE__ */ jsx("span", { className: `
+                    text-xs font-medium inline-flex items-center justify-center w-5 h-5 rounded-full
+                    ${isToday ? "bg-[var(--color-eu-blue)] text-white" : "text-[var(--color-text-primary)]"}
+                  `, children: day }),
+                  dayEvents.length > 0 && /* @__PURE__ */ jsxs("div", { className: "flex flex-wrap gap-0.5 mt-0.5", children: [
+                    dayEvents.slice(0, 3).map((ev, j) => /* @__PURE__ */ jsx("span", { className: `w-1.5 h-1.5 rounded-full shrink-0 ${dotColor(ev.category)}` }, j)),
+                    dayEvents.length > 3 && /* @__PURE__ */ jsxs("span", { className: "text-[9px] text-[var(--color-text-secondary)]", children: [
+                      "+",
+                      dayEvents.length - 3
+                    ] })
+                  ] })
+                ]
+              },
+              day
+            );
+          })
+        ] }),
+        /* @__PURE__ */ jsx("p", { className: "text-[10px] text-[var(--color-text-secondary)] mt-3 text-center", children: "Dates are indicative — verify on official call pages before submitting." })
+      ] }),
+      /* @__PURE__ */ jsx("div", { className: "p-4 overflow-y-auto max-h-[420px]", children: selectedDate ? /* @__PURE__ */ jsxs(Fragment, { children: [
+        /* @__PURE__ */ jsx("p", { className: "text-xs font-semibold uppercase tracking-wider text-[var(--color-text-secondary)] mb-3", children: (/* @__PURE__ */ new Date(selectedDate + "T00:00:00")).toLocaleDateString("en-GB", { day: "numeric", month: "long", year: "numeric" }) }),
+        selectedEvents.length === 0 ? /* @__PURE__ */ jsx("p", { className: "text-xs text-[var(--color-text-secondary)]", children: "No events on this date." }) : /* @__PURE__ */ jsx("div", { className: "space-y-3", children: selectedEvents.map((ev) => /* @__PURE__ */ jsx(EventCard, { ev }, ev.id)) })
+      ] }) : /* @__PURE__ */ jsxs(Fragment, { children: [
+        /* @__PURE__ */ jsx("p", { className: "text-xs font-semibold uppercase tracking-wider text-[var(--color-text-secondary)] mb-3", children: monthEvents.length > 0 ? `${MONTHS[month]} events` : "No events this month" }),
+        monthEvents.length === 0 ? /* @__PURE__ */ jsx("p", { className: "text-xs text-[var(--color-text-secondary)] leading-relaxed", children: "No events found for this month. Try browsing the sources above, or navigate to another month." }) : /* @__PURE__ */ jsx("div", { className: "space-y-3", children: monthEvents.map((ev) => /* @__PURE__ */ jsx(EventCard, { ev }, ev.id)) })
+      ] }) })
+    ] })
+  ] });
+}
+function EventCard({ ev }) {
+  return /* @__PURE__ */ jsx("div", { className: "text-xs space-y-0.5", children: /* @__PURE__ */ jsxs("div", { className: "flex items-start gap-1.5", children: [
+    /* @__PURE__ */ jsx("span", { className: `mt-1 w-2 h-2 rounded-full shrink-0 ${dotColor(ev.category)}` }),
+    /* @__PURE__ */ jsxs("div", { className: "flex-1 min-w-0", children: [
+      ev.registrationUrl ? /* @__PURE__ */ jsx(
+        "a",
+        {
+          href: ev.registrationUrl,
+          target: "_blank",
+          rel: "noopener noreferrer",
+          className: "font-medium text-[var(--color-text-primary)] hover:text-[var(--color-eu-blue-lighter)] hover:underline leading-snug block",
+          children: ev.title
+        }
+      ) : /* @__PURE__ */ jsx("p", { className: "font-medium text-[var(--color-text-primary)] leading-snug", children: ev.title }),
+      (ev.city || ev.country) && /* @__PURE__ */ jsxs("p", { className: "text-[var(--color-text-secondary)]", children: [
+        "📍 ",
+        [ev.city, ev.country].filter(Boolean).join(", ")
+      ] }),
+      ev.endDate && ev.endDate !== ev.startDate && /* @__PURE__ */ jsxs("p", { className: "text-[var(--color-text-secondary)]", children: [
+        "Until ",
+        (/* @__PURE__ */ new Date(ev.endDate + "T00:00:00")).toLocaleDateString("en-GB", { day: "numeric", month: "short" })
+      ] }),
+      ev.category && /* @__PURE__ */ jsx("span", { className: "inline-block mt-0.5 px-1.5 py-0.5 rounded text-[10px] bg-[var(--color-border)] text-[var(--color-text-secondary)]", children: ev.category })
+    ] })
+  ] }) });
+}
 async function fetchEvents(filters) {
   const params = new URLSearchParams();
   if (filters.cluster) params.set("cluster", filters.cluster);
@@ -6262,139 +6535,177 @@ function useEvents(filters) {
     staleTime: 1e3 * 60 * 15
   });
 }
-const PAGE_SIZE$1 = 20;
-function formatDate(iso) {
-  if (!iso) return "";
-  try {
-    return new Date(iso).toLocaleDateString("en-GB", {
-      day: "numeric",
-      month: "short",
-      year: "numeric"
-    });
-  } catch {
-    return iso;
+const EVENT_SOURCES = [
+  {
+    name: "Enterprise Europe Network (EEN)",
+    description: "Official EU brokerage events calendar — matchmaking sessions, partnership meetings, and consortium-building events across all Horizon Europe clusters.",
+    url: "https://een.ec.europa.eu/events",
+    type: "general"
+  },
+  {
+    name: "European Commission Research Events",
+    description: "Official EC research and innovation events including info days, stakeholder conferences, and programme launch events.",
+    url: "https://research-and-innovation.ec.europa.eu/events_en",
+    type: "general"
+  },
+  {
+    name: "Horizon Europe Info Days (Funding & Tenders)",
+    description: "Info days and webinars for open Horizon Europe calls — directly on the EU Funding & Tenders Portal.",
+    url: "https://ec.europa.eu/info/funding-tenders/opportunities/portal/screen/opportunities/events",
+    type: "general"
+  },
+  {
+    name: "Ideal-ist ICT / Digital (CL4)",
+    description: "NCP network for ICT and digital technology — Cluster 4 brokerage events, partner search events, and proposal writing workshops.",
+    url: "https://www.ideal-ist.eu/events",
+    clusters: ["Digital, Industry & Space (CL4)"],
+    type: "cluster"
+  },
+  {
+    name: "GREENET (Climate & Energy) (CL5)",
+    description: "Events for Cluster 5 (Climate, Energy, Mobility) — info days, brokerage, and NCP matchmaking in clean energy and transport.",
+    url: "https://www.greenet.network/events",
+    clusters: ["Climate, Energy & Mobility (CL5)"],
+    type: "cluster"
+  },
+  {
+    name: "Net4Society (Social Sciences) (CL2)",
+    description: "NCP network for Cluster 2 (Culture, Creativity, Social Sciences) — training days, partnering events, and cross-cutting Social Sciences & Humanities activities.",
+    url: "https://www.net4society.eu/events",
+    clusters: ["Culture, Creativity & Society (CL2)"],
+    type: "cluster"
+  },
+  {
+    name: "BESTPRAC / EaP NCP Network (CL3)",
+    description: "NCP coordination for Cluster 3 (Civil Security for Society) — networking events and brokerage.",
+    url: "https://www.ncpeasecurity.eu/events/",
+    clusters: ["Civil Security for Society (CL3)"],
+    type: "cluster"
+  },
+  {
+    name: "HealthNCPs (CL1)",
+    description: "NCP network for Cluster 1 (Health) — consortium-building events, info days, and proposal support for health research calls.",
+    url: "https://www.healthncps.eu/events/",
+    clusters: ["Health (CL1)"],
+    type: "cluster"
+  },
+  {
+    name: "AgriFoodNCP Network (CL6)",
+    description: "NCP network for Cluster 6 (Food, Bioeconomy, Agriculture) — partnering events and info days for food & nature research.",
+    url: "https://www.ncp-agrifood.eu/events",
+    clusters: ["Food, Bioeconomy & Agriculture (CL6)"],
+    type: "cluster"
+  },
+  {
+    name: "ERC Events",
+    description: "European Research Council info days, webinars, and open science events for ERC grants (Starting, Consolidator, Advanced, Synergy).",
+    url: "https://erc.europa.eu/news-events/events",
+    type: "general"
+  },
+  {
+    name: "MSCA Events",
+    description: "Marie Skłodowska-Curie Actions info days, researcher training events, and MSCA matchmaking (Postdoctoral Fellowships, Doctoral Networks, etc.).",
+    url: "https://marie-sklodowska-curie-actions.ec.europa.eu/events",
+    type: "general"
+  },
+  {
+    name: "KIC / EIT Events",
+    description: "Events from EIT Knowledge and Innovation Communities (KIC Climate, KIC Food, KIC Health, KIC Manufacturing, etc.)",
+    url: "https://eit.europa.eu/our-activities/events",
+    type: "general"
   }
-}
+];
+const TYPE_LABELS = {
+  general: "General / Cross-Cluster",
+  cluster: "Cluster-Specific NCP",
+  national: "National NCP",
+  matchmaking: "Matchmaking"
+};
+const TYPE_COLORS = {
+  general: "bg-[var(--color-eu-blue)]/20 text-[var(--color-eu-blue-lighter)] border-[var(--color-eu-blue)]/30",
+  cluster: "bg-amber-500/10 text-amber-300 border-amber-500/30",
+  national: "bg-emerald-500/10 text-emerald-300 border-emerald-500/30",
+  matchmaking: "bg-purple-500/10 text-purple-300 border-purple-500/30"
+};
+const CLUSTER_MAP = {
+  "1": ["Health (CL1)"],
+  "2": ["Culture, Creativity & Society (CL2)"],
+  "3": ["Civil Security for Society (CL3)"],
+  "4": ["Digital, Industry & Space (CL4)"],
+  "5": ["Climate, Energy & Mobility (CL5)"],
+  "6": ["Food, Bioeconomy & Agriculture (CL6)"]
+};
 function EventsPage() {
-  const [searchParams, setSearchParams] = useSearchParams();
-  const { data: countries = [] } = useCountries();
-  const [filters, setFilters] = useState({
-    cluster: searchParams.get("cluster") ?? void 0,
-    country: searchParams.get("country") ?? void 0,
-    page: parseInt(searchParams.get("page") ?? "1", 10)
+  const [selectedCluster, setSelectedCluster] = useState(null);
+  const { data: eventsData, isLoading: eventsLoading } = useEvents({
+    cluster: selectedCluster ?? void 0,
+    page: 1
   });
   useEffect(() => {
     document.title = "Brokerage Events — CORDIS Explorer";
   }, []);
-  const { data, isLoading, error } = useEvents(filters);
-  function applyFilters(updates) {
-    const next = { ...filters, ...updates, page: 1 };
-    setFilters(next);
-    const params = {};
-    if (next.cluster) params.cluster = next.cluster;
-    if (next.country) params.country = next.country;
-    if (next.page > 1) params.page = String(next.page);
-    setSearchParams(params, { replace: true });
-  }
+  const filtered = selectedCluster ? EVENT_SOURCES.filter(
+    (s) => {
+      var _a;
+      return !s.clusters || s.type === "general" || CLUSTER_MAP[selectedCluster] && ((_a = s.clusters) == null ? void 0 : _a.some((c) => CLUSTER_MAP[selectedCluster].includes(c)));
+    }
+  ) : EVENT_SOURCES;
   return /* @__PURE__ */ jsxs("div", { className: "max-w-5xl mx-auto px-4 py-12", children: [
     /* @__PURE__ */ jsxs("div", { className: "mb-8", children: [
       /* @__PURE__ */ jsx("h1", { className: "text-2xl font-bold text-[var(--color-text-primary)] mb-2", children: "Brokerage Events" }),
-      /* @__PURE__ */ jsx("p", { className: "text-sm text-[var(--color-text-secondary)]", children: "EU research networking and brokerage events from the Enterprise Europe Network (EEN). Find partnership opportunities, matchmaking sessions, and consortium-building events." })
+      /* @__PURE__ */ jsx("p", { className: "text-sm text-[var(--color-text-secondary)]", children: "EU research networking and brokerage events from across the Horizon Europe ecosystem. Browse official sources for partnership opportunities, matchmaking sessions, and consortium-building events." })
     ] }),
-    /* @__PURE__ */ jsxs("div", { className: "space-y-3 mb-8 p-4 rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-card)]", children: [
-      /* @__PURE__ */ jsx("div", { className: "flex flex-wrap gap-3 items-end", children: /* @__PURE__ */ jsxs(
-        "select",
-        {
-          value: filters.country ?? "",
-          onChange: (e) => applyFilters({ country: e.target.value || void 0 }),
-          className: "px-3 py-2 rounded-lg bg-[var(--color-bg-input)] border border-[var(--color-border)] text-sm text-[var(--color-text-primary)] focus:outline-none",
-          children: [
-            /* @__PURE__ */ jsx("option", { value: "", children: "All countries" }),
-            countries.map((c) => /* @__PURE__ */ jsx("option", { value: c, children: c }, c))
-          ]
-        }
-      ) }),
+    /* @__PURE__ */ jsx("div", { className: "mb-6 p-4 rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-card)]", children: /* @__PURE__ */ jsx(
+      ClusterBubbles,
+      {
+        selected: selectedCluster,
+        onChange: setSelectedCluster,
+        label: "Filter by Horizon Europe Cluster"
+      }
+    ) }),
+    /* @__PURE__ */ jsxs("div", { className: "mb-10", children: [
+      /* @__PURE__ */ jsx("h2", { className: "text-lg font-semibold text-[var(--color-text-primary)] mb-4", children: "Upcoming Events" }),
       /* @__PURE__ */ jsx(
-        ClusterBubbles,
+        CalendarView,
         {
-          selected: filters.cluster ?? null,
-          onChange: (v) => applyFilters({ cluster: v ?? void 0 }),
-          label: "Filter by Horizon Europe Cluster"
+          events: (eventsData == null ? void 0 : eventsData.events) ?? [],
+          isLoading: eventsLoading
         }
       )
     ] }),
-    isLoading && /* @__PURE__ */ jsx(Spinner, {}),
-    error && /* @__PURE__ */ jsxs("div", { className: "p-4 rounded-xl bg-amber-500/10 border border-amber-500/30 text-sm text-amber-300", children: [
-      "Could not load events.",
-      " ",
-      /* @__PURE__ */ jsx(
+    /* @__PURE__ */ jsxs("div", { className: "mb-4", children: [
+      /* @__PURE__ */ jsx("h2", { className: "text-lg font-semibold text-[var(--color-text-primary)] mb-4", children: "Browse Event Sources" }),
+      /* @__PURE__ */ jsx("div", { className: "space-y-4", children: filtered.map((source) => /* @__PURE__ */ jsx(
         "a",
         {
-          href: "https://een.ec.europa.eu/events",
+          href: source.url,
           target: "_blank",
           rel: "noopener noreferrer",
-          className: "underline",
-          children: "Browse on een.ec.europa.eu →"
-        }
-      )
-    ] }),
-    !isLoading && data && /* @__PURE__ */ jsx(Fragment, { children: data.events.length === 0 ? /* @__PURE__ */ jsx(
-      EmptyState,
-      {
-        title: "No events found",
-        description: "Try different filters, or browse events directly on the EEN website: een.ec.europa.eu/events"
-      }
-    ) : /* @__PURE__ */ jsxs(Fragment, { children: [
-      /* @__PURE__ */ jsx("div", { className: "space-y-4 mb-8", children: data.events.map((ev) => /* @__PURE__ */ jsxs(
-        "div",
-        {
-          className: "rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-card)] p-5 hover:border-[var(--color-eu-blue-lighter)] transition-colors",
-          children: [
-            /* @__PURE__ */ jsxs("div", { className: "flex items-start justify-between gap-4", children: [
-              /* @__PURE__ */ jsx("h3", { className: "font-semibold text-[var(--color-text-primary)] text-sm", children: ev.title }),
-              /* @__PURE__ */ jsx("span", { className: "shrink-0 text-xs text-[var(--color-text-secondary)] whitespace-nowrap", children: formatDate(ev.startDate) })
+          className: "block rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-card)] p-5 hover:border-[var(--color-eu-blue-lighter)] transition-colors group",
+          children: /* @__PURE__ */ jsxs("div", { className: "flex items-start justify-between gap-4", children: [
+            /* @__PURE__ */ jsxs("div", { className: "flex-1 min-w-0", children: [
+              /* @__PURE__ */ jsxs("div", { className: "flex items-center gap-2 flex-wrap mb-1", children: [
+                /* @__PURE__ */ jsx("h3", { className: "font-semibold text-[var(--color-text-primary)] text-sm group-hover:text-[var(--color-eu-blue-lighter)] transition-colors", children: source.name }),
+                /* @__PURE__ */ jsx("span", { className: `shrink-0 text-xs px-2 py-0.5 rounded-full border ${TYPE_COLORS[source.type]}`, children: TYPE_LABELS[source.type] })
+              ] }),
+              source.clusters && /* @__PURE__ */ jsx("p", { className: "text-xs text-[var(--color-text-secondary)] mb-1", children: source.clusters.join(" · ") }),
+              /* @__PURE__ */ jsx("p", { className: "text-sm text-[var(--color-text-secondary)] leading-relaxed", children: source.description })
             ] }),
-            (ev.city || ev.country) && /* @__PURE__ */ jsxs("p", { className: "text-xs text-[var(--color-text-secondary)] mt-1", children: [
-              "📍 ",
-              [ev.city, ev.country].filter(Boolean).join(", ")
-            ] }),
-            ev.description && /* @__PURE__ */ jsx("p", { className: "text-sm text-[var(--color-text-secondary)] mt-2 leading-relaxed line-clamp-3", children: ev.description.replace(/<[^>]+>/g, " ").trim() }),
-            ev.registrationUrl && /* @__PURE__ */ jsx(
-              "a",
-              {
-                href: ev.registrationUrl,
-                target: "_blank",
-                rel: "noopener noreferrer",
-                className: "inline-flex items-center gap-1 text-xs font-medium text-[var(--color-eu-blue-lighter)] hover:underline mt-3",
-                children: "Register / Learn more →"
-              }
-            )
-          ]
+            /* @__PURE__ */ jsx("span", { className: "shrink-0 text-xs font-medium text-[var(--color-eu-blue-lighter)] whitespace-nowrap mt-1", children: "Browse events →" })
+          ] })
         },
-        ev.id
-      )) }),
-      /* @__PURE__ */ jsx(
-        Pagination,
-        {
-          page: filters.page,
-          pageSize: PAGE_SIZE$1,
-          resultCount: data.events.length,
-          onPageChange: (p) => {
-            const next = { ...filters, page: p };
-            setFilters(next);
-            const params = {};
-            if (next.cluster) params.cluster = next.cluster;
-            if (next.country) params.country = next.country;
-            params.page = String(p);
-            setSearchParams(params, { replace: true });
-          }
-        }
-      )
-    ] }) })
+        source.url
+      )) })
+    ] }),
+    /* @__PURE__ */ jsxs("p", { className: "mt-8 text-xs text-[var(--color-text-secondary)] text-center", children: [
+      "Want to list your event?",
+      " ",
+      /* @__PURE__ */ jsx("a", { href: "https://een.ec.europa.eu/events/add", target: "_blank", rel: "noopener noreferrer", className: "underline hover:text-[var(--color-text-primary)] transition-colors", children: "Submit to the EEN events calendar →" })
+    ] })
   ] });
 }
 function useMscaProjects(filters) {
-  return useQuery({
+  const query = useQuery({
     queryKey: ["mscaProjects", filters],
     queryFn: async () => {
       const data = await executeSparql(
@@ -6415,9 +6726,10 @@ function useMscaProjects(filters) {
     },
     placeholderData: keepPreviousData
   });
+  return { ...query, isLoading: query.isLoading || query.isFetching };
 }
 function useMscaSupervisors(researchArea) {
-  return useQuery({
+  const query = useQuery({
     queryKey: ["mscaSupervisors", researchArea],
     queryFn: async () => {
       const data = await executeSparql(buildMscaSupervisorSearchQuery(researchArea));
@@ -6434,6 +6746,7 @@ function useMscaSupervisors(researchArea) {
     enabled: researchArea.length >= 3,
     staleTime: 1e3 * 60 * 30
   });
+  return { ...query, isLoading: query.isLoading || query.isFetching };
 }
 const PAGE_SIZE = 20;
 const MSCA_TYPES = [
@@ -6467,6 +6780,32 @@ function MscaPage() {
     pageSize: PAGE_SIZE
   });
   const { data: supervisors = [], isLoading: supervisorsLoading } = useMscaSupervisors(supervisorArea);
+  const saveHistory = useSaveHistory();
+  const savedProjectKeyRef = useRef("");
+  const savedSupervisorKeyRef = useRef("");
+  useEffect(() => {
+    if (!keyword || projects.length === 0) return;
+    const key = `${keyword}:${mscaType}:${page}`;
+    if (savedProjectKeyRef.current === key) return;
+    savedProjectKeyRef.current = key;
+    saveHistory.mutate({
+      query_type: "msca_projects",
+      query_params: { keyword, mscaType },
+      result_count: projects.length,
+      results_snapshot: projects.slice(0, 8).map((p) => ({ title: p.title, acronym: p.acronym, identifier: p.identifier }))
+    });
+  }, [projects, keyword, mscaType]);
+  useEffect(() => {
+    if (!supervisorArea || supervisors.length === 0) return;
+    if (savedSupervisorKeyRef.current === supervisorArea) return;
+    savedSupervisorKeyRef.current = supervisorArea;
+    saveHistory.mutate({
+      query_type: "msca_supervisors",
+      query_params: { researchArea: supervisorArea },
+      result_count: supervisors.length,
+      results_snapshot: supervisors.slice(0, 8).map((s) => ({ orgName: s.orgName, country: s.country, mscaProjectCount: s.mscaProjectCount }))
+    });
+  }, [supervisors, supervisorArea]);
   function search() {
     setKeyword(inputValue);
     setPage(1);
@@ -6558,7 +6897,7 @@ function MscaPage() {
           ] }),
           /* @__PURE__ */ jsxs("div", { className: "shrink-0 text-right", children: [
             p.startDate && /* @__PURE__ */ jsx("p", { className: "text-xs text-[var(--color-text-secondary)]", children: p.startDate.slice(0, 4) }),
-            p.topicLabel && /* @__PURE__ */ jsx("span", { className: "text-xs font-mono text-[var(--color-text-secondary)] block mt-0.5 max-w-[160px] truncate", children: p.topicLabel })
+            p.topicLabel && /* @__PURE__ */ jsx("span", { className: "text-xs text-[var(--color-text-secondary)] block mt-0.5", children: p.topicLabel })
           ] })
         ] }) }, i)) }),
         /* @__PURE__ */ jsx(
@@ -6614,19 +6953,195 @@ function MscaPage() {
           className: "block p-4 rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-card)] hover:border-[var(--color-eu-blue-lighter)] transition-colors",
           children: [
             /* @__PURE__ */ jsxs("div", { className: "flex items-center justify-between gap-2 mb-2", children: [
-              /* @__PURE__ */ jsx("p", { className: "text-sm font-semibold text-[var(--color-text-primary)] truncate", children: org.orgName }),
+              /* @__PURE__ */ jsx("p", { className: "text-sm font-semibold text-[var(--color-text-primary)]", children: org.orgName }),
               /* @__PURE__ */ jsxs("span", { className: "shrink-0 text-xs text-[var(--color-eu-blue-lighter)] font-medium", children: [
                 org.mscaProjectCount,
                 " MSCA"
               ] })
             ] }),
             org.country && /* @__PURE__ */ jsx("p", { className: "text-xs text-[var(--color-text-secondary)] mb-2", children: org.country }),
-            /* @__PURE__ */ jsx("ul", { className: "text-xs text-[var(--color-text-secondary)] space-y-0.5 list-disc list-inside", children: org.projectTitles.slice(0, 2).map((t, j) => /* @__PURE__ */ jsx("li", { className: "truncate", children: t }, j)) })
+            /* @__PURE__ */ jsx("ul", { className: "text-xs text-[var(--color-text-secondary)] space-y-0.5 list-disc list-inside", children: org.projectTitles.slice(0, 2).map((t, j) => /* @__PURE__ */ jsx("li", { children: t }, j)) })
           ]
         },
         i
       )) })
     ] })
+  ] });
+}
+const TYPE_META = {
+  project_search: {
+    label: "Project Search",
+    color: "bg-blue-500/15 text-blue-400 border-blue-500/30",
+    icon: "🔍",
+    toUrl: (p) => `/search?q=${encodeURIComponent(String(p.keyword ?? ""))}${p.cluster ? `&cluster=${p.cluster}` : ""}${p.actionType ? `&actionType=${p.actionType}` : ""}${p.country ? `&country=${p.country}` : ""}`
+  },
+  partner_search: {
+    label: "Partner Search",
+    color: "bg-emerald-500/15 text-emerald-400 border-emerald-500/30",
+    icon: "🤝",
+    toUrl: (p) => `/partner-search?callId=${encodeURIComponent(String(p.callId ?? ""))}${p.country ? `&country=${p.country}` : ""}`
+  },
+  msca_projects: {
+    label: "MSCA Projects",
+    color: "bg-amber-500/15 text-amber-400 border-amber-500/30",
+    icon: "🎓",
+    toUrl: (p) => `/msca?tab=projects&q=${encodeURIComponent(String(p.keyword ?? ""))}${p.mscaType && p.mscaType !== "all" ? `&type=${p.mscaType}` : ""}`
+  },
+  msca_supervisors: {
+    label: "MSCA Supervisors",
+    color: "bg-purple-500/15 text-purple-400 border-purple-500/30",
+    icon: "🏛",
+    toUrl: (p) => `/msca?tab=supervisors&area=${encodeURIComponent(String(p.researchArea ?? ""))}`
+  },
+  grant_match: {
+    label: "Grant Match",
+    color: "bg-rose-500/15 text-rose-400 border-rose-500/30",
+    icon: "✦",
+    toUrl: () => "/grant-match"
+  },
+  ai_rerank: {
+    label: "AI Re-rank",
+    color: "bg-violet-500/15 text-violet-400 border-violet-500/30",
+    icon: "🤖",
+    toUrl: (p) => `/search?q=${encodeURIComponent(String(p.keyword ?? ""))}`
+  }
+};
+const TABS = [
+  { value: "all", label: "All" },
+  { value: "project_search", label: "Projects" },
+  { value: "partner_search", label: "Partners" },
+  { value: "msca_projects", label: "MSCA" },
+  { value: "msca_supervisors", label: "Supervisors" },
+  { value: "grant_match", label: "Grant Match" }
+];
+function queryLabel(entry) {
+  const p = entry.query_params;
+  switch (entry.query_type) {
+    case "project_search":
+      return String(p.keyword ?? "All projects");
+    case "partner_search":
+      return String(p.callId ?? "Partner search");
+    case "msca_projects":
+      return `${p.keyword ?? "All"} · ${p.mscaType && p.mscaType !== "all" ? p.mscaType : "All types"}`;
+    case "msca_supervisors":
+      return String(p.researchArea ?? "Supervisor search");
+    case "grant_match":
+      return "Grant Match session";
+    case "ai_rerank":
+      return `AI re-rank: ${p.keyword ?? ""}`;
+    default:
+      return "Search";
+  }
+}
+function timeAgo(iso) {
+  const diff = Date.now() - new Date(iso).getTime();
+  const mins = Math.floor(diff / 6e4);
+  if (mins < 1) return "just now";
+  if (mins < 60) return `${mins}m ago`;
+  const hrs = Math.floor(mins / 60);
+  if (hrs < 24) return `${hrs}h ago`;
+  const days = Math.floor(hrs / 24);
+  if (days < 7) return `${days}d ago`;
+  return new Date(iso).toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
+}
+function HistoryPage() {
+  const { user, openAuthModal } = useAuth();
+  const [activeTab, setActiveTab] = useState("all");
+  const { data, isLoading } = useHistory(activeTab === "all" ? void 0 : activeTab);
+  const deleteHistory = useDeleteHistory();
+  useEffect(() => {
+    document.title = "Search History — CORDIS Explorer";
+  }, []);
+  if (!user) {
+    return /* @__PURE__ */ jsxs("div", { className: "max-w-2xl mx-auto px-4 py-24 text-center", children: [
+      /* @__PURE__ */ jsx("p", { className: "text-4xl mb-4", children: "🔐" }),
+      /* @__PURE__ */ jsx("h1", { className: "text-xl font-semibold text-[var(--color-text-primary)] mb-2", children: "Sign in to view your history" }),
+      /* @__PURE__ */ jsx("p", { className: "text-sm text-[var(--color-text-secondary)] mb-6", children: "Your search history is saved automatically when you're signed in." }),
+      /* @__PURE__ */ jsx("button", { onClick: openAuthModal, className: "btn-primary btn-sm btn-pill px-6", children: "Sign in" })
+    ] });
+  }
+  const items = (data == null ? void 0 : data.items) ?? [];
+  const total = (data == null ? void 0 : data.total) ?? 0;
+  return /* @__PURE__ */ jsxs("div", { className: "max-w-4xl mx-auto px-4 py-10", children: [
+    /* @__PURE__ */ jsxs("div", { className: "flex items-center justify-between mb-6", children: [
+      /* @__PURE__ */ jsxs("div", { children: [
+        /* @__PURE__ */ jsx("h1", { className: "text-2xl font-bold text-[var(--color-text-primary)]", children: "Search History" }),
+        /* @__PURE__ */ jsxs("p", { className: "text-sm text-[var(--color-text-secondary)] mt-0.5", children: [
+          total,
+          " saved ",
+          total === 1 ? "search" : "searches"
+        ] })
+      ] }),
+      items.length > 0 && /* @__PURE__ */ jsx(
+        "button",
+        {
+          onClick: () => {
+            if (confirm("Clear all search history?")) deleteHistory.mutate("all");
+          },
+          className: "text-xs text-[var(--color-text-secondary)] hover:text-rose-400 transition-colors",
+          children: "Clear all"
+        }
+      )
+    ] }),
+    /* @__PURE__ */ jsx("div", { className: "flex gap-1 mb-6 p-1 rounded-lg bg-[var(--color-bg-card)] border border-[var(--color-border)] w-fit flex-wrap", children: TABS.map((tab) => /* @__PURE__ */ jsx(
+      "button",
+      {
+        onClick: () => setActiveTab(tab.value),
+        className: `px-3 py-1.5 rounded-md text-xs font-medium transition-all ${activeTab === tab.value ? "bg-[var(--color-eu-blue)] text-white" : "text-[var(--color-text-secondary)] hover:text-[var(--color-text-primary)]"}`,
+        children: tab.label
+      },
+      tab.value
+    )) }),
+    isLoading && /* @__PURE__ */ jsx(Spinner, {}),
+    !isLoading && items.length === 0 && /* @__PURE__ */ jsxs("div", { className: "text-center py-20", children: [
+      /* @__PURE__ */ jsx("p", { className: "text-4xl mb-3", children: "📭" }),
+      /* @__PURE__ */ jsx("p", { className: "text-sm text-[var(--color-text-secondary)]", children: "No searches yet. Start exploring to build your history." }),
+      /* @__PURE__ */ jsx(Link, { to: "/", className: "inline-block mt-4 text-sm text-[var(--color-eu-blue-lighter)] hover:underline", children: "Go to home →" })
+    ] }),
+    !isLoading && items.length > 0 && /* @__PURE__ */ jsx("div", { className: "space-y-3", children: items.map((entry) => {
+      const meta = TYPE_META[entry.query_type];
+      const snapshot = entry.results_snapshot ?? [];
+      return /* @__PURE__ */ jsx("div", { className: "rounded-xl border border-[var(--color-border)] bg-[var(--color-bg-card)] p-4 group", children: /* @__PURE__ */ jsxs("div", { className: "flex items-start gap-3", children: [
+        /* @__PURE__ */ jsx("span", { className: "text-xl mt-0.5 shrink-0", children: meta.icon }),
+        /* @__PURE__ */ jsxs("div", { className: "flex-1 min-w-0", children: [
+          /* @__PURE__ */ jsxs("div", { className: "flex items-center gap-2 flex-wrap mb-1", children: [
+            /* @__PURE__ */ jsx("span", { className: `text-[10px] font-semibold px-2 py-0.5 rounded-full border ${meta.color}`, children: meta.label }),
+            /* @__PURE__ */ jsx("span", { className: "text-xs text-[var(--color-text-secondary)]", children: timeAgo(entry.created_at) }),
+            /* @__PURE__ */ jsxs("span", { className: "text-xs text-[var(--color-text-secondary)]", children: [
+              "· ",
+              entry.result_count,
+              " results"
+            ] })
+          ] }),
+          /* @__PURE__ */ jsx("p", { className: "text-sm font-medium text-[var(--color-text-primary)] mb-2", children: queryLabel(entry) }),
+          snapshot.length > 0 && /* @__PURE__ */ jsxs("div", { className: "flex flex-wrap gap-1 mb-3", children: [
+            snapshot.slice(0, 5).map((r, i) => /* @__PURE__ */ jsx("span", { className: "text-[11px] px-2 py-0.5 rounded bg-[var(--color-border)] text-[var(--color-text-secondary)]", children: String(r.acronym || r.orgName || r.title || "").slice(0, 40) }, i)),
+            snapshot.length > 5 && /* @__PURE__ */ jsxs("span", { className: "text-[11px] px-2 py-0.5 rounded bg-[var(--color-border)] text-[var(--color-text-secondary)]", children: [
+              "+",
+              snapshot.length - 5,
+              " more"
+            ] })
+          ] }),
+          /* @__PURE__ */ jsx("div", { className: "flex items-center gap-3", children: /* @__PURE__ */ jsx(
+            Link,
+            {
+              to: meta.toUrl(entry.query_params),
+              className: "text-xs font-medium text-[var(--color-eu-blue-lighter)] hover:underline",
+              children: "Re-run search →"
+            }
+          ) })
+        ] }),
+        /* @__PURE__ */ jsx(
+          "button",
+          {
+            onClick: () => deleteHistory.mutate(entry.id),
+            className: "shrink-0 text-[var(--color-text-secondary)] hover:text-rose-400 transition-colors opacity-0 group-hover:opacity-100 text-lg leading-none",
+            "aria-label": "Delete entry",
+            children: "×"
+          }
+        )
+      ] }) }, entry.id);
+    }) })
   ] });
 }
 function AuthModal() {
@@ -6645,12 +7160,14 @@ function AuthModal() {
     if (tab === "signin") {
       const { error: error2 } = await supabase.auth.signInWithPassword({ email, password });
       if (error2) setError(error2.message);
+      else closeAuthModal();
     } else {
       const { error: error2 } = await supabase.auth.signUp({ email, password });
       if (error2) {
         setError(error2.message);
       } else {
-        setMessage("Check your email for a confirmation link.");
+        setMessage("Account created — you are now signed in.");
+        closeAuthModal();
       }
     }
     setLoading(false);
@@ -6687,7 +7204,7 @@ function AuthModal() {
               "div",
               {
                 className: "w-10 h-10 rounded-xl flex items-center justify-center text-white font-bold text-sm mb-4",
-                style: { background: "#ff385c" },
+                style: { background: "#003399" },
                 children: "EU"
               }
             ),
@@ -6718,11 +7235,32 @@ function AuthModal() {
           /* @__PURE__ */ jsxs("form", { onSubmit: handleSubmit, className: "space-y-3", children: [
             /* @__PURE__ */ jsxs("div", { children: [
               /* @__PURE__ */ jsx("label", { className: "field-label", children: "Email" }),
-              /* @__PURE__ */ jsx("input", { type: "email", required: true, value: email, onChange: (e) => setEmail(e.target.value), placeholder: "you@example.com", className: "gm-input" })
+              /* @__PURE__ */ jsx(
+                "input",
+                {
+                  type: "email",
+                  required: true,
+                  value: email,
+                  onChange: (e) => setEmail(e.target.value),
+                  placeholder: "you@example.com",
+                  className: "gm-input"
+                }
+              )
             ] }),
             /* @__PURE__ */ jsxs("div", { children: [
               /* @__PURE__ */ jsx("label", { className: "field-label", children: "Password" }),
-              /* @__PURE__ */ jsx("input", { type: "password", required: true, minLength: 6, value: password, onChange: (e) => setPassword(e.target.value), placeholder: "••••••••", className: "gm-input" })
+              /* @__PURE__ */ jsx(
+                "input",
+                {
+                  type: "password",
+                  required: true,
+                  minLength: 6,
+                  value: password,
+                  onChange: (e) => setPassword(e.target.value),
+                  placeholder: "••••••••",
+                  className: "gm-input"
+                }
+              )
             ] }),
             error && /* @__PURE__ */ jsx("p", { className: "text-xs rounded-lg px-3 py-2", style: { color: "#c13515", background: "rgba(193,53,21,0.06)", border: "1px solid rgba(193,53,21,0.18)" }, children: error }),
             message && /* @__PURE__ */ jsx("p", { className: "text-xs rounded-lg px-3 py-2", style: { color: "#167445", background: "rgba(22,116,69,0.06)", border: "1px solid rgba(22,116,69,0.18)" }, children: message }),
@@ -6762,7 +7300,8 @@ function App() {
       /* @__PURE__ */ jsx(Route, { path: "/graph", element: /* @__PURE__ */ jsx(KnowledgeGraphPage, {}) }),
       /* @__PURE__ */ jsx(Route, { path: "/org/:encodedName", element: /* @__PURE__ */ jsx(OrgPage, {}) }),
       /* @__PURE__ */ jsx(Route, { path: "/events", element: /* @__PURE__ */ jsx(EventsPage, {}) }),
-      /* @__PURE__ */ jsx(Route, { path: "/msca", element: /* @__PURE__ */ jsx(MscaPage, {}) })
+      /* @__PURE__ */ jsx(Route, { path: "/msca", element: /* @__PURE__ */ jsx(MscaPage, {}) }),
+      /* @__PURE__ */ jsx(Route, { path: "/history", element: /* @__PURE__ */ jsx(HistoryPage, {}) })
     ] }) }),
     /* @__PURE__ */ jsx(Footer, {}),
     showAuthModal && /* @__PURE__ */ jsx(AuthModal, {})

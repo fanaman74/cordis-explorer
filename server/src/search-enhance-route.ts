@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import type { Request, Response } from 'express';
-import Anthropic from '@anthropic-ai/sdk';
+import { chat } from './ai-client.js';
 import { requireAuth } from './auth-middleware.js';
 import { checkAndIncrementUsage } from './usage.js';
 import { getCacheKey, getCached, setCache } from './cache.js';
@@ -20,10 +20,6 @@ interface ProjectSnippet {
 interface EnhancedProject extends ProjectSnippet {
   relevanceScore: number;
   relevanceExplanation: string;
-}
-
-function getClient() {
-  return new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
 }
 
 async function rerankWithClaude(
@@ -51,15 +47,9 @@ JSON format (return ONLY the array, no other text):
   ...
 ]`;
 
-  const message = await getClient().messages.create({
-    model: 'claude-sonnet-4-6',
-    max_tokens: 3000,
-    messages: [{ role: 'user', content: prompt }],
-  });
-
-  const text = message.content[0].type === 'text' ? message.content[0].text : '[]';
+  const text = await chat([{ role: 'user', content: prompt }], { max_tokens: 3000 });
   const jsonMatch = text.match(/\[[\s\S]*\]/);
-  if (!jsonMatch) throw new Error('Claude returned invalid JSON for re-ranking');
+  if (!jsonMatch) throw new Error('AI returned invalid JSON for re-ranking');
 
   const ranked: Array<{ index: number; relevanceScore: number; relevanceExplanation: string }> =
     JSON.parse(jsonMatch[0]);
@@ -83,8 +73,8 @@ searchEnhanceRouter.post('/', requireAuth, async (req: Request, res: Response) =
     res.status(400).json({ error: 'keyword and projects[] are required' });
     return;
   }
-  if (!process.env.ANTHROPIC_API_KEY) {
-    res.status(500).json({ error: 'ANTHROPIC_API_KEY not configured' });
+  if (!process.env.OPENROUTER_API_KEY) {
+    res.status(500).json({ error: 'OPENROUTER_API_KEY not configured' });
     return;
   }
 

@@ -1,14 +1,10 @@
 import { Router } from 'express';
 import type { Request, Response } from 'express';
-import Anthropic from '@anthropic-ai/sdk';
+import { chat } from './ai-client.js';
 import { requireAuth } from './auth-middleware.js';
 import { checkAndIncrementUsage } from './usage.js';
 
 export const partnerMatchRouter = Router();
-
-function getClient() {
-  return new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
-}
 
 export interface PartnerRequest {
   description: string;
@@ -135,15 +131,9 @@ JSON format (return ONLY the array, no other text):
   }
 ]`;
 
-  const message = await getClient().messages.create({
-    model: 'claude-sonnet-4-6',
-    max_tokens: 2000,
-    messages: [{ role: 'user', content: prompt }],
-  });
-
-  const text = message.content[0].type === 'text' ? message.content[0].text : '';
+  const text = await chat([{ role: 'user', content: prompt }], { max_tokens: 2000 });
   const jsonMatch = text.match(/\[[\s\S]*\]/);
-  if (!jsonMatch) throw new Error('Claude returned invalid JSON');
+  if (!jsonMatch) throw new Error('AI returned invalid JSON');
 
   const scored: Array<{orgName: string; matchScore: number; reason: string; expertise: string[]}> = JSON.parse(jsonMatch[0]);
 
@@ -168,8 +158,8 @@ partnerMatchRouter.post('/', requireAuth, async (req: Request, res: Response) =>
     res.status(400).json({ error: 'Please provide a project description of at least 20 characters.' });
     return;
   }
-  if (!process.env.ANTHROPIC_API_KEY) {
-    res.status(500).json({ error: 'ANTHROPIC_API_KEY not configured.' });
+  if (!process.env.OPENROUTER_API_KEY) {
+    res.status(500).json({ error: 'OPENROUTER_API_KEY not configured.' });
     return;
   }
 

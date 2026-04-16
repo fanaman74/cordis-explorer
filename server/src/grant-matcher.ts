@@ -1,11 +1,5 @@
-import Anthropic from '@anthropic-ai/sdk';
+import { chat } from './ai-client.js';
 import type { StartupProfile, MatchResult, FilteredCall, FundingCall } from './types.js';
-
-let _client: Anthropic | null = null;
-function getClient(): Anthropic {
-  if (!_client) _client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
-  return _client;
-}
 
 // Map startup stage to implied TRL range [min, max]
 const STAGE_TRL: Record<string, [number, number]> = {
@@ -122,13 +116,7 @@ Return ONLY a valid JSON object with this exact structure, no other text:
   "recommended_pivot": "<string or null>"
 }`;
 
-  const message = await getClient().messages.create({
-    model: 'claude-sonnet-4-6',
-    max_tokens: 2048,
-    messages: [{ role: 'user', content: prompt }],
-  });
-
-  const raw = message.content[0].type === 'text' ? message.content[0].text : '';
+  const raw = await chat([{ role: 'user', content: prompt }], { max_tokens: 2048 });
   const text = raw.replace(/^```(?:json)?\s*/i, '').replace(/\s*```\s*$/i, '').trim();
   const parsed = JSON.parse(text);
 
