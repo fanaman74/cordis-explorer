@@ -1,8 +1,6 @@
 import { Router } from 'express';
 import type { Request, Response } from 'express';
 import { chat } from './ai-client.js';
-import { requireAuth } from './auth-middleware.js';
-import { checkAndIncrementUsage } from './usage.js';
 
 export const partnerMatchRouter = Router();
 
@@ -151,7 +149,7 @@ JSON format (return ONLY the array, no other text):
   }).sort((a, b) => b.matchScore - a.matchScore);
 }
 
-partnerMatchRouter.post('/', requireAuth, async (req: Request, res: Response) => {
+partnerMatchRouter.post('/', async (req: Request, res: Response) => {
   const { description, country, maxResults = 10 } = req.body as PartnerRequest;
 
   if (!description || description.trim().length < 20) {
@@ -164,8 +162,6 @@ partnerMatchRouter.post('/', requireAuth, async (req: Request, res: Response) =>
   }
 
   try {
-    await checkAndIncrementUsage(req.userId!, 'partner_match');
-
     const keywords = extractKeywords(description);
     const orgs = await fetchOrgsFromSparql(keywords, country);
 

@@ -1,8 +1,6 @@
 import { Router } from 'express';
 import type { Request, Response } from 'express';
 import { chat } from './ai-client.js';
-import { requireAuth } from './auth-middleware.js';
-import { checkAndIncrementUsage } from './usage.js';
 import { getCacheKey, getCached, setCache } from './cache.js';
 
 export const searchEnhanceRouter = Router();
@@ -66,7 +64,7 @@ JSON format (return ONLY the array, no other text):
     });
 }
 
-searchEnhanceRouter.post('/', requireAuth, async (req: Request, res: Response) => {
+searchEnhanceRouter.post('/', async (req: Request, res: Response) => {
   const { keyword, projects } = req.body as { keyword: string; projects: ProjectSnippet[] };
 
   if (!keyword || !Array.isArray(projects) || projects.length === 0) {
@@ -79,8 +77,6 @@ searchEnhanceRouter.post('/', requireAuth, async (req: Request, res: Response) =
   }
 
   try {
-    await checkAndIncrementUsage(req.userId!, 'search_enhance');
-
     const cacheKey = getCacheKey(`search-enhance:${keyword}:${projects.map(p => p.uri).join(',')}`);
     const cached = getCached(cacheKey);
     if (cached) { res.json(cached); return; }

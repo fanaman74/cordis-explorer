@@ -3665,14 +3665,9 @@ function MatchResults({ profile, results, filteredCalls }) {
   ] });
 }
 async function postGrantMatch(profile, tool) {
-  const { data: { session } } = await supabase.auth.getSession();
-  const token = session == null ? void 0 : session.access_token;
   const response = await fetch("/api/grant-match", {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      ...token ? { "Authorization": `Bearer ${token}` } : {}
-    },
+    headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ ...profile, _tool: tool })
   });
   if (!response.ok) {
@@ -3682,11 +3677,9 @@ async function postGrantMatch(profile, tool) {
   return response.json();
 }
 function useGrantMatch(tool = "grant_match") {
-  const navigate = useNavigate();
   return useMutation({
     mutationFn: (profile) => postGrantMatch(profile, tool),
-    onError: (err) => {
-      if (err.message === "limit_exceeded") navigate("/pricing");
+    onError: () => {
     }
   });
 }
@@ -4758,16 +4751,12 @@ function PartnerMatchPage() {
   ] }) }) });
 }
 async function fetchPartnerSearch(filters) {
-  const { data: { session } } = await supabase.auth.getSession();
-  const token = session == null ? void 0 : session.access_token;
   const params = new URLSearchParams();
   if (filters.callId) params.set("callId", filters.callId);
   if (filters.cluster) params.set("cluster", filters.cluster);
   if (filters.country) params.set("country", filters.country);
   params.set("page", String(filters.page));
-  const response = await fetch(`/api/partner-search-hub?${params}`, {
-    headers: token ? { "Authorization": `Bearer ${token}` } : {}
-  });
+  const response = await fetch(`/api/partner-search-hub?${params}`);
   if (!response.ok) {
     const err = await response.json().catch(() => ({ error: "Unknown error" }));
     throw new Error(err.error || `Partner search failed: ${response.status}`);

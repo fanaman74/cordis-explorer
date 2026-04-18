@@ -1,20 +1,14 @@
 import { useQuery, keepPreviousData } from '@tanstack/react-query';
-import { supabase } from '../lib/supabase';
 import type { PartnerSearchFilters, PartnerSearchResponse } from '../api/types';
 
 async function fetchPartnerSearch(filters: PartnerSearchFilters): Promise<PartnerSearchResponse> {
-  const { data: { session } } = await supabase.auth.getSession();
-  const token = session?.access_token;
-
   const params = new URLSearchParams();
   if (filters.callId) params.set('callId', filters.callId);
   if (filters.cluster) params.set('cluster', filters.cluster);
   if (filters.country) params.set('country', filters.country);
   params.set('page', String(filters.page));
 
-  const response = await fetch(`/api/partner-search-hub?${params}`, {
-    headers: token ? { 'Authorization': `Bearer ${token}` } : {},
-  });
+  const response = await fetch(`/api/partner-search-hub?${params}`);
 
   if (!response.ok) {
     const err = await response.json().catch(() => ({ error: 'Unknown error' }));

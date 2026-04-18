@@ -1,7 +1,5 @@
 import { useMutation } from '@tanstack/react-query';
-import { useNavigate } from 'react-router-dom';
 import type { StartupProfile, MatchResult, FilteredCall } from '../api/types';
-import { supabase } from '../lib/supabase';
 
 export type GrantTool = 'grant_search' | 'profile_match' | 'grant_match';
 
@@ -11,15 +9,9 @@ export interface GrantMatchResponse {
 }
 
 async function postGrantMatch(profile: StartupProfile, tool: GrantTool): Promise<GrantMatchResponse> {
-  const { data: { session } } = await supabase.auth.getSession();
-  const token = session?.access_token;
-
   const response = await fetch('/api/grant-match', {
     method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
-    },
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ ...profile, _tool: tool }),
   });
   if (!response.ok) {
@@ -30,11 +22,8 @@ async function postGrantMatch(profile: StartupProfile, tool: GrantTool): Promise
 }
 
 export function useGrantMatch(tool: GrantTool = 'grant_match') {
-  const navigate = useNavigate();
   return useMutation<GrantMatchResponse, Error, StartupProfile>({
     mutationFn: (profile) => postGrantMatch(profile, tool),
-    onError: (err) => {
-      if (err.message === 'limit_exceeded') navigate('/pricing');
-    },
+    onError: () => {},
   });
 }

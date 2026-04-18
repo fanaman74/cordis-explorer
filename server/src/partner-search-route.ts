@@ -1,7 +1,5 @@
 import { Router } from 'express';
 import type { Request, Response } from 'express';
-import { requireAuth } from './auth-middleware.js';
-import { checkAndIncrementUsage } from './usage.js';
 import { getCacheKey, getCached, setCache } from './cache.js';
 
 export const partnerSearchRouter = Router();
@@ -146,13 +144,11 @@ function deriveExpertise(titles: string[], baseKeywords: string[]): string[] {
   return [...tags].slice(0, 4);
 }
 
-partnerSearchRouter.get('/', requireAuth, async (req: Request, res: Response) => {
+partnerSearchRouter.get('/', async (req: Request, res: Response) => {
   const { callId, cluster, country, page = '1' } = req.query as Record<string, string>;
   const pageNum = Math.max(1, parseInt(page, 10) || 1);
 
   try {
-    await checkAndIncrementUsage(req.userId!, 'partner_search');
-
     const cacheKey = getCacheKey(`partner-search-v2:${callId}:${cluster}:${country}:${page}`);
     const cached = getCached(cacheKey);
     if (cached) { res.json(cached); return; }
