@@ -3,7 +3,6 @@ import { Link } from 'react-router-dom';
 import { usePartnerMatch } from '../hooks/usePartnerMatch';
 import type { PartnerResult } from '../hooks/usePartnerMatch';
 import { useCountries } from '../hooks/useCountries';
-import AuthGate from '../components/auth/AuthGate';
 import ClusterBubbles from '../components/common/ClusterBubbles';
 import { HE_CLUSTERS } from '../api/query-builder';
 
@@ -128,8 +127,7 @@ export default function PartnerMatchPage() {
   }
 
   return (
-    <AuthGate>
-      <div className="min-h-screen px-4 py-10">
+    <div className="min-h-screen px-4 py-10">
         <div className="max-w-3xl mx-auto">
           {/* Header */}
           <div className="mb-8">
@@ -299,6 +297,6 @@ export default function PartnerMatchPage() {
           )}
         </div>
       </div>
-    </AuthGate>
+    </div>
   );
 }

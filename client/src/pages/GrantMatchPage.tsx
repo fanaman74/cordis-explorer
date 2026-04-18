@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react';
 import ProfileWizard from '../components/grant-match/ProfileWizard';
-import AuthGate from '../components/auth/AuthGate';
 import ClusterBubbles from '../components/common/ClusterBubbles';
 
 export default function GrantMatchPage() {
@@ -43,12 +42,7 @@ export default function GrantMatchPage() {
         <ClusterBubbles selected={cluster} onChange={setCluster} label="" />
       </div>
 
-      <AuthGate
-        title="Sign in to run your grant match"
-        description="Create a free account to use AI-powered grant matching. It takes less than a minute."
-      >
-        <ProfileWizard preferredCluster={cluster} />
-      </AuthGate>
+      <ProfileWizard preferredCluster={cluster} />
     </div>
   );
 }
