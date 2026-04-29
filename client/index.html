@@ -4,16 +4,15 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#ff385c" />
 
-    <!-- Primary SEO -->
+    <!-- SEO head (injected per-page by SSR; falls back to defaults below) -->
+    <!--app-head-->
     <title>CORDIS Explorer — Search EU-Funded Research Projects</title>
     <meta name="description" content="Explore 50,000+ EU-funded research projects from Horizon Europe, H2020 and FP7. Search CORDIS data, discover partner organisations, find grants, and visualise research networks — powered by AI." />
-    <meta name="keywords" content="CORDIS, EU research, Horizon Europe, H2020, FP7, EU grants, research projects, European funding, grant search, research partners, SPARQL, knowledge graph" />
     <link rel="canonical" href="https://cordis-explorer.eu/" />
     <meta name="robots" content="index, follow" />
     <meta name="author" content="CORDIS Explorer" />
-
-    <!-- Open Graph -->
     <meta property="og:type" content="website" />
     <meta property="og:url" content="https://cordis-explorer.eu/" />
     <meta property="og:title" content="CORDIS Explorer — Search EU-Funded Research Projects" />
@@ -23,44 +22,11 @@
     <meta property="og:image:height" content="630" />
     <meta property="og:site_name" content="CORDIS Explorer" />
     <meta property="og:locale" content="en_GB" />
-
-    <!-- Twitter / X Card -->
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="CORDIS Explorer — Search EU-Funded Research Projects" />
     <meta name="twitter:description" content="Explore 50,000+ EU-funded research projects. AI-powered grant matching and research partner discovery for Horizon Europe, H2020 and FP7." />
     <meta name="twitter:image" content="https://cordis-explorer.eu/og-image.png" />
-
-    <!-- JSON-LD Structured Data -->
-    <script type="application/ld+json">
-    {
-      "@context": "https://schema.org",
-      "@graph": [
-        {
-          "@type": "WebSite",
-          "@id": "https://cordis-explorer.eu/#website",
-          "url": "https://cordis-explorer.eu/",
-          "name": "CORDIS Explorer",
-          "description": "Search and explore EU-funded research projects from Horizon Europe, H2020 and FP7",
-          "potentialAction": {
-            "@type": "SearchAction",
-            "target": {
-              "@type": "EntryPoint",
-              "urlTemplate": "https://cordis-explorer.eu/search?q={search_term_string}"
-            },
-            "query-input": "required name=search_term_string"
-          }
-        },
-        {
-          "@type": "Organization",
-          "@id": "https://cordis-explorer.eu/#organization",
-          "url": "https://cordis-explorer.eu/",
-          "name": "CORDIS Explorer",
-          "description": "AI-powered platform for discovering EU-funded research projects and partners",
-          "sameAs": []
-        }
-      ]
-    }
-    </script>
+    <!--/app-head-->
 
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />

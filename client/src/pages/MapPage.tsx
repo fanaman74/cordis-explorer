@@ -1,6 +1,7 @@
 import { useState, lazy, Suspense } from 'react';
 import { useMapData } from '../hooks/useMapData';
 import type { CountryMapData } from '../hooks/useMapData';
+import { Seo } from '../lib/seo';
 
 // Leaflet must be lazily imported to avoid SSR issues and ensure CSS loads
 const CordisMap = lazy(() => import('../components/map/CordisMap'));
@@ -79,6 +80,20 @@ export default function MapPage() {
 
   return (
     <div className="flex flex-col" style={{ height: 'calc(100vh - 3.5rem)' }}>
+      <Seo
+        title="EU Research Funding Map — Projects by Country | CORDIS Explorer"
+        description="Interactive map of EU-funded research projects by country. Visualise how Horizon Europe, H2020 and FP7 funding is distributed across 27 EU member states and associated countries."
+        canonical="/map"
+        keywords="EU research map, Horizon Europe by country, H2020 participation, EU funding distribution, European research geography"
+        jsonLd={{
+          '@context': 'https://schema.org',
+          '@type': 'WebPage',
+          name: 'EU Research Funding Map',
+          description:
+            'Choropleth map showing EU-funded research project participations by country.',
+          url: 'https://cordis-explorer.eu/map',
+        }}
+      />
       {/* Top bar */}
       <div className="flex items-center justify-between px-4 py-2.5 border-b border-[var(--color-border)] bg-[var(--color-bg-secondary)] shrink-0">
         <div className="flex items-center gap-3">

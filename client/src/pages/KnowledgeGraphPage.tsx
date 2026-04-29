@@ -11,6 +11,7 @@ import {
 } from '../api/query-builder';
 import { executeSparql } from '../api/sparql-client';
 import { useCountries } from '../hooks/useCountries';
+import { Seo } from '../lib/seo';
 
 function getVal(b: Record<string, { value: string } | undefined>, key: string) {
   return b[key]?.value;
@@ -108,11 +109,6 @@ function HeroGraphAnimation() {
 }
 
 export default function KnowledgeGraphPage() {
-  useEffect(() => {
-    document.title = 'EU Research Knowledge Graph — CORDIS Explorer';
-    return () => { document.title = 'CORDIS Explorer — Search EU-Funded Research Projects'; };
-  }, []);
-
   const [nodes, setNodes] = useState<GraphNode[]>([]);
   const [edges, setEdges] = useState<GraphEdge[]>([]);
   const [selected, setSelected] = useState<GraphNode | null>(null);
@@ -332,6 +328,23 @@ export default function KnowledgeGraphPage() {
   const liveSelected = selected ? nodes.find(n => n.id === selected.id) ?? selected : null;
   const hasGraph = nodes.length > 0;
 
+  const graphSeo = (
+    <Seo
+      title="EU Research Knowledge Graph — Explore CORDIS EURIO | CORDIS Explorer"
+      description="Interactive knowledge graph of EU-funded research. Explore relationships between organisations, projects and countries from the CORDIS EURIO semantic graph."
+      canonical="/graph"
+      keywords="EU research knowledge graph, EURIO, CORDIS graph, research network visualisation, Horizon Europe network"
+      jsonLd={{
+        '@context': 'https://schema.org',
+        '@type': 'WebPage',
+        name: 'EU Research Knowledge Graph',
+        description:
+          'Interactive force-directed visualisation of the CORDIS EURIO knowledge graph.',
+        url: 'https://cordis-explorer.eu/graph',
+      }}
+    />
+  );
+
   /* ════════════════════════════════════════
      HERO (shown before any graph is loaded)
   ════════════════════════════════════════ */
@@ -341,6 +354,7 @@ export default function KnowledgeGraphPage() {
         className="relative flex flex-col items-center justify-center min-h-[calc(100vh-4rem)] px-4 overflow-hidden"
         style={{ background: 'linear-gradient(180deg, #fff5f7 0%, #ffffff 60%)' }}
       >
+        {graphSeo}
         <HeroGraphAnimation />
 
         <div className="relative z-10 flex flex-col items-center text-center max-w-2xl">
@@ -494,6 +508,7 @@ export default function KnowledgeGraphPage() {
   ════════════════════════════════════════ */
   return (
     <div className="flex flex-col" style={{ height: 'calc(100vh - 4rem)' }}>
+      {graphSeo}
 
       {/* ── Top bar ── */}
       <div

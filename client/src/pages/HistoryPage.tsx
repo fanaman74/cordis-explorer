@@ -1,9 +1,10 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import { useHistory, useDeleteHistory } from '../hooks/useHistory';
 import type { HistoryEntry, QueryType } from '../hooks/useHistory';
 import Spinner from '../components/common/Spinner';
+import { Seo } from '../lib/seo';
 
 const TYPE_META: Record<QueryType, { label: string; color: string; icon: string; toUrl: (p: Record<string, unknown>) => string }> = {
   project_search: {
@@ -84,13 +85,19 @@ export default function HistoryPage() {
   const { data, isLoading, error } = useHistory(activeTab === 'all' ? undefined : activeTab);
   const deleteHistory = useDeleteHistory();
 
-  useEffect(() => {
-    document.title = 'Search History — CORDIS Explorer';
-  }, []);
+  const seo = (
+    <Seo
+      title="Search History — CORDIS Explorer"
+      description="Your saved CORDIS Explorer search history — project searches, grant matches, partner searches and MSCA queries."
+      canonical="/history"
+      noindex
+    />
+  );
 
   if (!user) {
     return (
       <div className="max-w-2xl mx-auto px-4 py-24 text-center">
+        {seo}
         <p className="text-4xl mb-4">🔐</p>
         <h1 className="text-xl font-semibold text-[var(--color-text-primary)] mb-2">Sign in to view your history</h1>
         <p className="text-sm text-[var(--color-text-secondary)] mb-6">Your search history is saved automatically when you're signed in.</p>
@@ -104,6 +111,7 @@ export default function HistoryPage() {
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-10">
+      {seo}
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-2xl font-bold text-[var(--color-text-primary)]">Search History</h1>

@@ -1,6 +1,7 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { Seo } from '../lib/seo';
 
 const PLANS = [
   {
@@ -39,10 +40,15 @@ const PLANS = [
 
 export default function CreditsPage() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { user, openAuthModal } = useAuth();
   const [annual, setAnnual] = useState(false);
   const [contactForm, setContactForm] = useState<{ plan: string; email: string; org: string } | null>(null);
   const [submitted, setSubmitted] = useState(false);
+
+  // /credits duplicates /pricing — canonicalise to /pricing.
+  const canonical = '/pricing';
+  const isAlias = location.pathname === '/credits';
 
   function handleCta(plan: typeof PLANS[number]) {
     if (plan.ctaAction === 'signup') {
@@ -68,6 +74,43 @@ export default function CreditsPage() {
 
   return (
     <div className="min-h-screen px-4 py-14" style={{ background: '#ffffff' }}>
+      <Seo
+        title="Pricing — CORDIS Explorer Plans for Researchers & SMEs"
+        description="Free, Pro and Team plans for AI-powered EU grant matching. Find the right Horizon Europe funding calls for your research with unlimited AI queries on Pro and Team."
+        canonical={canonical}
+        noindex={isAlias}
+        keywords="CORDIS Explorer pricing, EU grant matching pricing, Horizon Europe tools pricing, research funding SaaS"
+        jsonLd={{
+          '@context': 'https://schema.org',
+          '@type': 'Product',
+          name: 'CORDIS Explorer',
+          description: 'AI-powered search and matching for EU-funded research projects and grants.',
+          brand: { '@type': 'Brand', name: 'CORDIS Explorer' },
+          offers: [
+            {
+              '@type': 'Offer',
+              name: 'Free',
+              price: '0',
+              priceCurrency: 'EUR',
+              description: '5 AI queries/month, all matching tools, browse CORDIS projects',
+            },
+            {
+              '@type': 'Offer',
+              name: 'Pro',
+              price: '29',
+              priceCurrency: 'EUR',
+              description: '100 AI queries/month, priority support, export results',
+            },
+            {
+              '@type': 'Offer',
+              name: 'Team',
+              price: '99',
+              priceCurrency: 'EUR',
+              description: '500 AI queries/month, up to 5 seats, API access',
+            },
+          ],
+        }}
+      />
       <div className="max-w-4xl mx-auto">
         {/* Header */}
         <div className="text-center mb-10">

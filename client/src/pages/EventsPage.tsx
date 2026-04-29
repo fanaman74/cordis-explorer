@@ -1,7 +1,8 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import ClusterBubbles from '../components/common/ClusterBubbles';
 import CalendarView from '../components/events/CalendarView';
 import { useEvents } from '../hooks/useEvents';
+import { Seo } from '../lib/seo';
 
 interface EventSource {
   name: string;
@@ -123,10 +124,6 @@ export default function EventsPage() {
     page: 1,
   });
 
-  useEffect(() => {
-    document.title = 'Brokerage Events — CORDIS Explorer';
-  }, []);
-
   const filtered = selectedCluster
     ? EVENT_SOURCES.filter(s =>
         !s.clusters ||
@@ -138,6 +135,20 @@ export default function EventsPage() {
 
   return (
     <div className="max-w-5xl mx-auto px-4 py-12">
+      <Seo
+        title="EU Brokerage Events — Horizon Europe Matchmaking | CORDIS Explorer"
+        description="EU research brokerage events and matchmaking sessions from the Enterprise Europe Network and Horizon Europe ecosystem. Filter by cluster and country to find partnership opportunities."
+        canonical="/events"
+        keywords="EU brokerage events, Horizon Europe matchmaking, consortium building events, EEN events, research networking EU"
+        jsonLd={{
+          '@context': 'https://schema.org',
+          '@type': 'CollectionPage',
+          name: 'EU Brokerage Events',
+          description:
+            'Collection of EU research brokerage, matchmaking and consortium-building events across the Horizon Europe ecosystem.',
+          url: 'https://cordis-explorer.eu/events',
+        }}
+      />
       <div className="mb-8">
         <h1 className="text-2xl font-bold text-[var(--color-text-primary)] mb-2">
           Brokerage Events

@@ -4,6 +4,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { StaticRouter } from 'react-router-dom/server';
 import App from './App';
 import { AuthContext } from './contexts/AuthContext';
+import { resetHead, renderHead } from './lib/seo';
 
 /**
  * Server-side AuthProvider that always renders as logged-out.
@@ -27,7 +28,14 @@ function ServerAuthProvider({ children }: { children: React.ReactNode }) {
   );
 }
 
-export function render(url: string): string {
+export interface RenderResult {
+  html: string;
+  head: string;
+}
+
+export function render(url: string): RenderResult {
+  resetHead();
+
   const queryClient = new QueryClient({
     defaultOptions: {
       queries: { retry: false },
@@ -46,5 +54,6 @@ export function render(url: string): string {
     </React.StrictMode>,
   );
 
-  return html;
+  const head = renderHead();
+  return { html, head };
 }

@@ -8,6 +8,7 @@ import Pagination from '../components/common/Pagination';
 import Spinner from '../components/common/Spinner';
 import EmptyState from '../components/common/EmptyState';
 import type { PartnerProfile, PartnerSearchFilters } from '../api/types';
+import { Seo } from '../lib/seo';
 
 const PAGE_SIZE = 20;
 
@@ -91,10 +92,6 @@ export default function PartnerSearchPage() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [data, filters.callId]);
 
-  useEffect(() => {
-    document.title = 'Partner Search — CORDIS Explorer';
-  }, []);
-
   function applyFilters(updates: Partial<PartnerSearchFilters>) {
     const next = { ...filters, ...updates, page: 1 };
     setFilters(next);
@@ -108,6 +105,12 @@ export default function PartnerSearchPage() {
 
   return (
     <div className="max-w-6xl mx-auto px-4 py-12">
+      <Seo
+        title="Partner Search Hub — Organisations with EU Research Track Record | CORDIS Explorer"
+        description="Find organisations with a proven EU research track record. Filter by Horizon Europe cluster, call reference, or country. Enriched with CORDIS project data."
+        canonical="/partner-search"
+        keywords="EU research partners, partner search, Horizon Europe organisations, consortium builder, research track record"
+      />
       <div className="mb-8">
         <h1 className="text-2xl font-bold text-[var(--color-text-primary)] mb-2">
           Partner Search Hub

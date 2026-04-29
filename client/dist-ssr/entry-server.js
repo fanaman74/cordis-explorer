@@ -597,23 +597,7 @@ function encodeLocation(to) {
   };
 }
 const ABSOLUTE_URL_REGEX = /^(?:[a-z][a-z0-9+.-]*:|\/\/)/i;
-const runtimeConfig = typeof window !== "undefined" ? window.__RUNTIME_CONFIG__ : void 0;
-const supabaseUrl = (runtimeConfig == null ? void 0 : runtimeConfig.SUPABASE_URL) || "https://swmvjiygqsuctoltoosi.supabase.co";
-const supabaseAnonKey = (runtimeConfig == null ? void 0 : runtimeConfig.SUPABASE_ANON_KEY) || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN3bXZqaXlncXN1Y3RvbHRvb3NpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM2Njc4MDIsImV4cCI6MjA4OTI0MzgwMn0.DnJPprVjeqYlfMZXGg8No4zO7UBbj4-Brsf6jAySKQo";
-const supabase = createClient(
-  supabaseUrl,
-  supabaseAnonKey
-);
-const AuthContext = createContext(null);
-function useAuth() {
-  const ctx = useContext(AuthContext);
-  if (!ctx) throw new Error("useAuth must be used within AuthProvider");
-  return ctx;
-}
-const ADMIN_EMAIL$1 = "fredanaman@proton.me";
 function Header() {
-  const { user, openAuthModal, signOut } = useAuth();
-  const location = useLocation();
   return /* @__PURE__ */ jsx(
     "header",
     {
@@ -642,61 +626,19 @@ function Header() {
             }
           )
         ] }),
-        /* @__PURE__ */ jsxs("div", { className: "flex items-center gap-3", children: [
-          /* @__PURE__ */ jsx(
-            "a",
-            {
-              href: "https://cordis.europa.eu/datalab",
-              target: "_blank",
-              rel: "noopener noreferrer",
-              className: "text-sm font-medium no-underline transition-colors duration-200 hidden sm:block",
-              style: { color: "#6a6a6a" },
-              onMouseEnter: (e) => e.currentTarget.style.color = "#222222",
-              onMouseLeave: (e) => e.currentTarget.style.color = "#6a6a6a",
-              children: "About"
-            }
-          ),
-          user ? /* @__PURE__ */ jsxs("div", { className: "flex items-center gap-2", children: [
-            /* @__PURE__ */ jsx(
-              Link,
-              {
-                to: "/history",
-                className: "text-sm font-medium no-underline transition-colors duration-200 hidden sm:block",
-                style: { color: location.pathname === "/history" ? "#222222" : "#6a6a6a" },
-                onMouseEnter: (e) => e.currentTarget.style.color = "#222222",
-                onMouseLeave: (e) => e.currentTarget.style.color = location.pathname === "/history" ? "#222222" : "#6a6a6a",
-                children: "History"
-              }
-            ),
-            /* @__PURE__ */ jsx("span", { className: "text-xs hidden sm:block max-w-[140px] truncate", style: { color: "#6a6a6a" }, children: user.email }),
-            user.email === ADMIN_EMAIL$1 && /* @__PURE__ */ jsx(
-              Link,
-              {
-                to: "/admin",
-                className: "btn-secondary btn-sm btn-pill no-underline",
-                style: { height: "32px", fontSize: "12px", color: "#e00b41", borderColor: "rgba(224,11,65,0.3)" },
-                children: "Admin"
-              }
-            ),
-            /* @__PURE__ */ jsx(
-              "button",
-              {
-                onClick: signOut,
-                className: "btn-secondary btn-sm btn-pill",
-                style: { height: "32px", fontSize: "13px" },
-                children: "Sign out"
-              }
-            )
-          ] }) : /* @__PURE__ */ jsx(
-            "button",
-            {
-              onClick: openAuthModal,
-              className: "btn-primary btn-sm btn-pill",
-              style: { height: "36px" },
-              children: "Sign in"
-            }
-          )
-        ] })
+        /* @__PURE__ */ jsx("div", { className: "flex items-center gap-3", children: /* @__PURE__ */ jsx(
+          "a",
+          {
+            href: "https://cordis.europa.eu/datalab",
+            target: "_blank",
+            rel: "noopener noreferrer",
+            className: "text-sm font-medium no-underline transition-colors duration-200 hidden sm:block",
+            style: { color: "#6a6a6a" },
+            onMouseEnter: (e) => e.currentTarget.style.color = "#222222",
+            onMouseLeave: (e) => e.currentTarget.style.color = "#6a6a6a",
+            children: "About"
+          }
+        ) })
       ] })
     }
   );
@@ -737,6 +679,19 @@ function Footer() {
       ] })
     ] })
   ] }) });
+}
+const runtimeConfig = typeof window !== "undefined" ? window.__RUNTIME_CONFIG__ : void 0;
+const supabaseUrl = (runtimeConfig == null ? void 0 : runtimeConfig.SUPABASE_URL) || "https://swmvjiygqsuctoltoosi.supabase.co";
+const supabaseAnonKey = (runtimeConfig == null ? void 0 : runtimeConfig.SUPABASE_ANON_KEY) || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN3bXZqaXlncXN1Y3RvbHRvb3NpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM2Njc4MDIsImV4cCI6MjA4OTI0MzgwMn0.DnJPprVjeqYlfMZXGg8No4zO7UBbj4-Brsf6jAySKQo";
+const supabase = createClient(
+  supabaseUrl,
+  supabaseAnonKey
+);
+const AuthContext = createContext(null);
+function useAuth() {
+  const ctx = useContext(AuthContext);
+  if (!ctx) throw new Error("useAuth must be used within AuthProvider");
+  return ctx;
 }
 const HE_CLUSTERS = {
   "1": { label: "Health", short: "Health", color: "#f43f5e", patterns: ["HORIZON-HEALTH-", "HORIZON-CL1-"] },
@@ -1387,6 +1342,191 @@ function parsePublications(data) {
 function parseStringList(data, key) {
   return data.results.bindings.map((binding) => getValue(binding, key)).filter((v) => !!v).sort();
 }
+const SITE_URL = "https://cordis-explorer.eu";
+const SITE_NAME = "CORDIS Explorer";
+const DEFAULT_IMAGE = `${SITE_URL}/og-image.png`;
+const DEFAULT_DESCRIPTION = "Explore 50,000+ EU-funded research projects from Horizon Europe, H2020 and FP7. Search CORDIS data, discover partner organisations, find grants, and visualise research networks — powered by AI.";
+function emptyHead() {
+  return {
+    noindex: false,
+    ogType: "website",
+    jsonLd: []
+  };
+}
+const store = { head: emptyHead() };
+function resetHead() {
+  store.head = emptyHead();
+}
+function escapeHtml(s) {
+  return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+}
+function toAbsolute(path) {
+  if (!path) return void 0;
+  if (/^https?:\/\//.test(path)) return path;
+  return `${SITE_URL}${path.startsWith("/") ? path : `/${path}`}`;
+}
+function applyProps(h, props) {
+  h.title = props.title;
+  if (props.description !== void 0) h.description = props.description;
+  if (props.canonical !== void 0) h.canonical = toAbsolute(props.canonical);
+  if (props.noindex !== void 0) h.noindex = props.noindex;
+  h.image = toAbsolute(props.image) ?? DEFAULT_IMAGE;
+  if (props.ogType !== void 0) h.ogType = props.ogType;
+  if (props.keywords !== void 0) h.keywords = props.keywords;
+  if (props.jsonLd !== void 0) {
+    const items = Array.isArray(props.jsonLd) ? props.jsonLd : [props.jsonLd];
+    h.jsonLd.push(...items);
+  }
+}
+function renderHead() {
+  const h = store.head;
+  const parts = [];
+  const title = h.title ? escapeHtml(h.title) : escapeHtml(SITE_NAME);
+  const description = escapeHtml(h.description ?? DEFAULT_DESCRIPTION);
+  const canonical = h.canonical ? escapeHtml(h.canonical) : `${SITE_URL}/`;
+  const image = escapeHtml(h.image ?? DEFAULT_IMAGE);
+  const ogType = escapeHtml(h.ogType);
+  parts.push(`<title data-seo-managed>${title}</title>`);
+  parts.push(`<meta data-seo-managed name="description" content="${description}"/>`);
+  if (h.keywords) {
+    parts.push(`<meta data-seo-managed name="keywords" content="${escapeHtml(h.keywords)}"/>`);
+  }
+  parts.push(`<link data-seo-managed rel="canonical" href="${canonical}"/>`);
+  parts.push(
+    `<meta data-seo-managed name="robots" content="${h.noindex ? "noindex, nofollow" : "index, follow"}"/>`
+  );
+  parts.push(`<meta data-seo-managed name="author" content="${escapeHtml(SITE_NAME)}"/>`);
+  parts.push(`<meta data-seo-managed property="og:type" content="${ogType}"/>`);
+  parts.push(`<meta data-seo-managed property="og:url" content="${canonical}"/>`);
+  parts.push(`<meta data-seo-managed property="og:title" content="${title}"/>`);
+  parts.push(`<meta data-seo-managed property="og:description" content="${description}"/>`);
+  parts.push(`<meta data-seo-managed property="og:image" content="${image}"/>`);
+  parts.push(`<meta data-seo-managed property="og:image:width" content="1200"/>`);
+  parts.push(`<meta data-seo-managed property="og:image:height" content="630"/>`);
+  parts.push(`<meta data-seo-managed property="og:site_name" content="${escapeHtml(SITE_NAME)}"/>`);
+  parts.push(`<meta data-seo-managed property="og:locale" content="en_GB"/>`);
+  parts.push(`<meta data-seo-managed name="twitter:card" content="summary_large_image"/>`);
+  parts.push(`<meta data-seo-managed name="twitter:title" content="${title}"/>`);
+  parts.push(`<meta data-seo-managed name="twitter:description" content="${description}"/>`);
+  parts.push(`<meta data-seo-managed name="twitter:image" content="${image}"/>`);
+  const baseGraph = buildBaseGraph();
+  const jsonLd = [baseGraph, ...h.jsonLd];
+  for (const item of jsonLd) {
+    const json = JSON.stringify(item).replace(/</g, "\\u003c");
+    parts.push(`<script data-seo-managed type="application/ld+json">${json}<\/script>`);
+  }
+  return parts.join("\n    ");
+}
+function buildBaseGraph() {
+  return {
+    "@context": "https://schema.org",
+    "@graph": [
+      {
+        "@type": "WebSite",
+        "@id": `${SITE_URL}/#website`,
+        url: `${SITE_URL}/`,
+        name: SITE_NAME,
+        description: "Search and explore EU-funded research projects from Horizon Europe, H2020 and FP7",
+        inLanguage: "en",
+        publisher: { "@id": `${SITE_URL}/#organization` },
+        potentialAction: {
+          "@type": "SearchAction",
+          target: {
+            "@type": "EntryPoint",
+            urlTemplate: `${SITE_URL}/search?q={search_term_string}`
+          },
+          "query-input": "required name=search_term_string"
+        }
+      },
+      {
+        "@type": "Organization",
+        "@id": `${SITE_URL}/#organization`,
+        url: `${SITE_URL}/`,
+        name: SITE_NAME,
+        description: "AI-powered platform for discovering EU-funded research projects and partners",
+        logo: {
+          "@type": "ImageObject",
+          url: `${SITE_URL}/favicon.svg`
+        }
+      }
+    ]
+  };
+}
+const isServer = typeof window === "undefined";
+function Seo(props) {
+  if (isServer) {
+    applyProps(store.head, props);
+  }
+  const depKey = JSON.stringify({
+    t: props.title,
+    d: props.description,
+    c: props.canonical,
+    n: props.noindex,
+    i: props.image,
+    o: props.ogType,
+    k: props.keywords,
+    j: props.jsonLd
+  });
+  useEffect(() => {
+    if (isServer) return;
+    applyToDocument(props);
+  }, [depKey]);
+  return null;
+}
+function applyToDocument(props) {
+  document.querySelectorAll("[data-seo-managed]").forEach((el) => el.remove());
+  const head = document.head;
+  const title = props.title;
+  const description = props.description ?? DEFAULT_DESCRIPTION;
+  const canonical = toAbsolute(props.canonical) ?? `${SITE_URL}/`;
+  const image = toAbsolute(props.image) ?? DEFAULT_IMAGE;
+  const ogType = props.ogType ?? "website";
+  document.title = title;
+  const add = (tag, attrs, content) => {
+    const el = document.createElement(tag);
+    for (const [k, v] of Object.entries(attrs)) el.setAttribute(k, v);
+    el.setAttribute("data-seo-managed", "");
+    if (content !== void 0) el.textContent = content;
+    head.appendChild(el);
+  };
+  add("meta", { name: "description", content: description });
+  if (props.keywords) add("meta", { name: "keywords", content: props.keywords });
+  add("link", { rel: "canonical", href: canonical });
+  add("meta", { name: "robots", content: props.noindex ? "noindex, nofollow" : "index, follow" });
+  add("meta", { name: "author", content: SITE_NAME });
+  add("meta", { property: "og:type", content: ogType });
+  add("meta", { property: "og:url", content: canonical });
+  add("meta", { property: "og:title", content: title });
+  add("meta", { property: "og:description", content: description });
+  add("meta", { property: "og:image", content: image });
+  add("meta", { property: "og:image:width", content: "1200" });
+  add("meta", { property: "og:image:height", content: "630" });
+  add("meta", { property: "og:site_name", content: SITE_NAME });
+  add("meta", { property: "og:locale", content: "en_GB" });
+  add("meta", { name: "twitter:card", content: "summary_large_image" });
+  add("meta", { name: "twitter:title", content: title });
+  add("meta", { name: "twitter:description", content: description });
+  add("meta", { name: "twitter:image", content: image });
+  const jsonLdItems = [
+    buildBaseGraph(),
+    ...Array.isArray(props.jsonLd) ? props.jsonLd : props.jsonLd ? [props.jsonLd] : []
+  ];
+  for (const item of jsonLdItems) {
+    add("script", { type: "application/ld+json" }, JSON.stringify(item));
+  }
+}
+function breadcrumbJsonLd(crumbs) {
+  return {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: crumbs.map((c, i) => ({
+      "@type": "ListItem",
+      position: i + 1,
+      name: c.name,
+      item: toAbsolute(c.path)
+    }))
+  };
+}
 const ACCENT_COLORS = ["#ff385c", "#2563eb", "#16a34a", "#d97706", "#7c3aed"];
 function detectProgramme(startDate) {
   if (!startDate) return void 0;
@@ -1853,10 +1993,73 @@ function LatestAdditions() {
 function HomePage() {
   const { user, openAuthModal } = useAuth();
   const visibleTools = TOOLS;
-  useEffect(() => {
-    document.title = "CORDIS Explorer — Search EU-Funded Research Projects";
-  }, []);
   return /* @__PURE__ */ jsxs("div", { className: "min-h-screen", style: { background: "#ffffff" }, children: [
+    /* @__PURE__ */ jsx(
+      Seo,
+      {
+        title: "CORDIS Explorer — Search EU-Funded Research Projects",
+        description: "Explore 50,000+ EU-funded research projects from Horizon Europe, H2020 and FP7. Search CORDIS data, discover partner organisations, find grants, and visualise research networks — powered by AI.",
+        canonical: "/",
+        keywords: "CORDIS, EU research, Horizon Europe, H2020, FP7, EU grants, research projects, European funding, grant search, research partners, SPARQL, knowledge graph",
+        jsonLd: [
+          {
+            "@context": "https://schema.org",
+            "@type": "WebApplication",
+            name: "CORDIS Explorer",
+            url: "https://cordis-explorer.eu/",
+            description: "AI-powered search platform for 50,000+ EU-funded research projects from Horizon Europe, H2020 and FP7.",
+            applicationCategory: "BusinessApplication",
+            operatingSystem: "Web",
+            offers: { "@type": "Offer", price: "0", priceCurrency: "EUR" },
+            featureList: [
+              "Search EU-funded research projects",
+              "AI-powered grant matching",
+              "Research partner discovery",
+              "Knowledge graph visualisation",
+              "Geographic map of EU research"
+            ]
+          },
+          {
+            "@context": "https://schema.org",
+            "@type": "FAQPage",
+            mainEntity: [
+              {
+                "@type": "Question",
+                name: "What is CORDIS Explorer?",
+                acceptedAnswer: {
+                  "@type": "Answer",
+                  text: "CORDIS Explorer is an AI-powered search platform for EU-funded research projects. It connects to the official CORDIS EURIO Knowledge Graph maintained by the European Commission and makes it easy to search, filter, and analyse over 50,000 projects funded under Horizon Europe, Horizon 2020, and FP7."
+                }
+              },
+              {
+                "@type": "Question",
+                name: "How many EU research projects can I search?",
+                acceptedAnswer: {
+                  "@type": "Answer",
+                  text: "CORDIS Explorer covers more than 50,000 EU-funded research projects representing over €100 billion in public research funding across Horizon Europe, Horizon 2020, and FP7."
+                }
+              },
+              {
+                "@type": "Question",
+                name: "What is the difference between CORDIS Explorer and the official CORDIS portal?",
+                acceptedAnswer: {
+                  "@type": "Answer",
+                  text: "CORDIS Explorer adds AI-powered grant matching, partner discovery, and knowledge graph visualisation on top of the official CORDIS data. Describe your research in plain language and the AI ranks the most relevant open EU funding calls for your organisation."
+                }
+              },
+              {
+                "@type": "Question",
+                name: "Which EU funding programmes are covered?",
+                acceptedAnswer: {
+                  "@type": "Answer",
+                  text: "Horizon Europe (2021–2027), Horizon 2020 (2014–2020), and the Seventh Framework Programme (FP7, 2007–2013)."
+                }
+              }
+            ]
+          }
+        ]
+      }
+    ),
     /* @__PURE__ */ jsxs("section", { style: {
       position: "relative",
       height: "calc(100vh - 65px)",
@@ -2752,10 +2955,6 @@ function SearchPage() {
   var _a;
   const [searchParams, setSearchParams] = useSearchParams();
   const filters = filtersFromParams(searchParams);
-  useEffect(() => {
-    const kw = filters.keyword;
-    document.title = kw ? `"${kw}" — CORDIS Project Search` : "Search EU Research Projects — CORDIS Explorer";
-  }, [filters.keyword]);
   const { data: projects = [], isLoading, isError, error } = useProjectSearch(filters);
   const saveHistory = useSaveHistory();
   const savedKeyRef = useRef("");
@@ -2800,7 +2999,19 @@ function SearchPage() {
   function handlePageChange(page) {
     updateFilters({ ...filters, page });
   }
+  const kw = filters.keyword;
+  const seoTitle = kw ? `"${kw}" — Search EU Research Projects | CORDIS Explorer` : "Search EU Research Projects — CORDIS Explorer";
+  const seoDescription = kw ? `Search results for "${kw}" across 50,000+ EU-funded research projects from Horizon Europe, H2020 and FP7. Filter by country, programme, cluster, and more.` : "Search 50,000+ EU-funded research projects from Horizon Europe, H2020 and FP7. Filter by country, programme, Horizon Europe cluster, organisation, TRL and date.";
   return /* @__PURE__ */ jsxs("div", { className: "max-w-7xl mx-auto px-4 py-8", children: [
+    /* @__PURE__ */ jsx(
+      Seo,
+      {
+        title: seoTitle,
+        description: seoDescription,
+        canonical: "/search",
+        keywords: "search EU research projects, CORDIS search, Horizon Europe search, H2020 projects, FP7 projects, EU grant search"
+      }
+    ),
     /* @__PURE__ */ jsxs("div", { className: "space-y-4", children: [
       /* @__PURE__ */ jsx(SearchBar, { value: filters.keyword || "", onChange: handleKeywordChange }),
       /* @__PURE__ */ jsx(FilterPanel, { filters, onFilterChange: handleFilterChange }),
@@ -3024,16 +3235,54 @@ function ProjectPage() {
   var _a;
   const { id } = useParams();
   const { detail, publications } = useProjectDetail(id);
-  useEffect(() => {
-    var _a2;
-    if ((_a2 = detail.data) == null ? void 0 : _a2.title) {
-      const acronym = detail.data.acronym ? ` (${detail.data.acronym})` : "";
-      document.title = `${detail.data.title}${acronym} — CORDIS Explorer`;
-    } else {
-      document.title = "Project Details — CORDIS Explorer";
-    }
-  }, [detail.data]);
+  const data = detail.data;
+  const acronym = (data == null ? void 0 : data.acronym) ? ` (${data.acronym})` : "";
+  const title = (data == null ? void 0 : data.title) ? `${data.title}${acronym} — CORDIS Explorer` : `Project ${id ?? ""} — CORDIS Explorer`;
+  const description = (data == null ? void 0 : data.abstract) ? data.abstract.slice(0, 280) : `Details, partners, and publications for EU-funded research project ${(data == null ? void 0 : data.acronym) ?? id ?? ""}.`;
+  const researchProjectLd = data ? {
+    "@context": "https://schema.org",
+    "@type": "ResearchProject",
+    name: data.title,
+    alternateName: data.acronym,
+    identifier: data.identifier ?? id,
+    url: `https://cordis-explorer.eu/project/${id}`,
+    description: data.abstract,
+    startDate: data.startDate,
+    endDate: data.endDate,
+    funder: {
+      "@type": "Organization",
+      name: "European Commission",
+      url: "https://commission.europa.eu/"
+    },
+    funding: data.programme ? {
+      "@type": "Grant",
+      name: data.programme,
+      funder: {
+        "@type": "Organization",
+        name: "European Commission"
+      }
+    } : void 0,
+    keywords: data.keywords
+  } : null;
+  const jsonLd = [
+    breadcrumbJsonLd([
+      { name: "Home", path: "/" },
+      { name: "Search", path: "/search" },
+      { name: (data == null ? void 0 : data.acronym) ?? (data == null ? void 0 : data.title) ?? (id ?? "Project"), path: `/project/${id}` }
+    ]),
+    ...researchProjectLd ? [researchProjectLd] : []
+  ];
   return /* @__PURE__ */ jsxs("div", { className: "max-w-5xl mx-auto px-4 py-8", children: [
+    /* @__PURE__ */ jsx(
+      Seo,
+      {
+        title,
+        description,
+        canonical: `/project/${id}`,
+        ogType: "article",
+        jsonLd
+      }
+    ),
     /* @__PURE__ */ jsxs(
       Link,
       {
@@ -3721,37 +3970,25 @@ function ProfileWizard({ preferredCluster }) {
     matchData && /* @__PURE__ */ jsx(MatchResults, { profile: data, results: matchData.results, filteredCalls: matchData.filteredCalls })
   ] });
 }
-function AuthGate({ children, title, description }) {
-  const { user, loading, openAuthModal } = useAuth();
-  if (loading) {
-    return /* @__PURE__ */ jsx("div", { className: "flex items-center justify-center py-20", children: /* @__PURE__ */ jsx("div", { className: "w-6 h-6 border-2 border-[var(--color-eu-blue-lighter)] border-t-transparent rounded-full animate-spin" }) });
-  }
-  if (!user) {
-    return /* @__PURE__ */ jsxs("div", { className: "flex flex-col items-center justify-center py-20 px-4 text-center", children: [
-      /* @__PURE__ */ jsx("div", { className: "w-16 h-16 rounded-2xl bg-[var(--color-eu-blue)]/10 border border-[var(--color-eu-blue)]/20 flex items-center justify-center mb-5", children: /* @__PURE__ */ jsx("svg", { className: "w-8 h-8 text-[var(--color-eu-blue-lighter)]", fill: "none", stroke: "currentColor", viewBox: "0 0 24 24", children: /* @__PURE__ */ jsx("path", { strokeLinecap: "round", strokeLinejoin: "round", strokeWidth: 1.5, d: "M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" }) }) }),
-      /* @__PURE__ */ jsx("h3", { className: "text-lg font-bold text-[var(--color-text-primary)] mb-2", children: title ?? "Sign in to access this tool" }),
-      /* @__PURE__ */ jsx("p", { className: "text-sm text-[var(--color-text-muted)] max-w-xs mb-6", children: description ?? "Create a free account to use AI-powered grant matching." }),
-      /* @__PURE__ */ jsx(
-        "button",
-        {
-          onClick: openAuthModal,
-          className: "px-6 py-2.5 rounded-lg bg-[var(--color-eu-blue)] hover:bg-[var(--color-eu-blue-lighter)] text-white text-sm font-semibold transition-colors",
-          children: "Sign in / Create account"
-        }
-      )
-    ] });
-  }
-  return /* @__PURE__ */ jsx(Fragment, { children });
-}
 function GrantMatchPage() {
-  useEffect(() => {
-    document.title = "AI Grant Matching — Find EU Grants for Your Startup | CORDIS Explorer";
-    return () => {
-      document.title = "CORDIS Explorer — Search EU-Funded Research Projects";
-    };
-  }, []);
   const [cluster, setCluster] = useState(null);
   return /* @__PURE__ */ jsxs("div", { className: "max-w-2xl mx-auto px-4 py-10", children: [
+    /* @__PURE__ */ jsx(
+      Seo,
+      {
+        title: "AI Grant Matching — Find EU Grants for Your Startup | CORDIS Explorer",
+        description: "Answer a few questions and AI scans 900+ open EU funding calls to find the grants that best match your startup's sector, stage, and R&D profile. 100% free.",
+        canonical: "/grant-match",
+        keywords: "EU grant matching, AI grant finder, startup grants EU, Horizon Europe matching, EIC Accelerator, EU funding for startups",
+        jsonLd: {
+          "@context": "https://schema.org",
+          "@type": "WebPage",
+          name: "AI Grant Matching",
+          description: "AI-powered wizard that matches your startup to the most relevant open EU funding calls.",
+          url: "https://cordis-explorer.eu/grant-match"
+        }
+      }
+    ),
     /* @__PURE__ */ jsxs("div", { className: "mb-8", children: [
       /* @__PURE__ */ jsx("span", { className: "inline-block bg-[color-mix(in_srgb,var(--color-amber)_12%,transparent)] text-[var(--color-amber)] border border-[color-mix(in_srgb,var(--color-amber)_25%,transparent)] rounded-full text-xs font-semibold px-3 py-1 mb-4", children: "100% Free · AI-Powered" }),
       /* @__PURE__ */ jsxs("h1", { className: "text-3xl font-extrabold text-[var(--color-text-primary)] leading-tight tracking-tight mb-3", children: [
@@ -3779,14 +4016,7 @@ function GrantMatchPage() {
         ]
       }
     ),
-    /* @__PURE__ */ jsx(
-      AuthGate,
-      {
-        title: "Sign in to run your grant match",
-        description: "Create a free account to use AI-powered grant matching. It takes less than a minute.",
-        children: /* @__PURE__ */ jsx(ProfileWizard, { preferredCluster: cluster })
-      }
-    )
+    /* @__PURE__ */ jsx(ProfileWizard, { preferredCluster: cluster })
   ] });
 }
 function PMStep1({ data, onChange, onNext }) {
@@ -4055,6 +4285,22 @@ function ProfileMatchWizard() {
 }
 function ProfileMatchPage() {
   return /* @__PURE__ */ jsxs("div", { className: "max-w-2xl mx-auto px-4 py-10", children: [
+    /* @__PURE__ */ jsx(
+      Seo,
+      {
+        title: "Profile Match — EU Grants Matched to Your Profile | CORDIS Explorer",
+        description: "Describe what your organisation does and get best-fit EU funding calls without picking sectors manually. Claude reads your profile and matches it to open calls.",
+        canonical: "/profile-match",
+        keywords: "profile-based grant matching, EU research grants, organisation funding match, Horizon Europe match",
+        jsonLd: {
+          "@context": "https://schema.org",
+          "@type": "WebPage",
+          name: "Profile Match",
+          description: "Match your organisation profile to open EU funding calls using AI.",
+          url: "https://cordis-explorer.eu/profile-match"
+        }
+      }
+    ),
     /* @__PURE__ */ jsxs("div", { className: "mb-8", children: [
       /* @__PURE__ */ jsx("span", { className: "inline-block bg-[color-mix(in_srgb,var(--color-eu-blue-lighter)_12%,transparent)] text-[var(--color-eu-blue-lighter)] border border-[color-mix(in_srgb,var(--color-eu-blue-lighter)_25%,transparent)] rounded-full text-xs font-semibold px-3 py-1 mb-4", children: "Profile-Based Matching · AI-Powered" }),
       /* @__PURE__ */ jsxs("h1", { className: "text-3xl font-extrabold text-[var(--color-text-primary)] leading-tight tracking-tight mb-3", children: [
@@ -4064,14 +4310,7 @@ function ProfileMatchPage() {
       ] }),
       /* @__PURE__ */ jsx("p", { className: "text-[var(--color-text-secondary)] text-sm leading-relaxed", children: "Describe what you do and we'll find the best EU funding calls for you — no sector selection needed. Claude reads your profile and matches it against open calls." })
     ] }),
-    /* @__PURE__ */ jsx(
-      AuthGate,
-      {
-        title: "Sign in to run your profile match",
-        description: "Create a free account to use AI-powered grant matching. It takes less than a minute.",
-        children: /* @__PURE__ */ jsx(ProfileMatchWizard, {})
-      }
-    )
+    /* @__PURE__ */ jsx(ProfileMatchWizard, {})
   ] });
 }
 const ORG_TYPES = ["Startup", "SME", "Non-profit / NGO", "Research Organisation", "Pre-incorporation / Solo Founder", "Other"];
@@ -4196,6 +4435,22 @@ function GrantSearchForm() {
 }
 function GrantSearchPage() {
   return /* @__PURE__ */ jsxs("div", { className: "max-w-2xl mx-auto px-4 py-10", children: [
+    /* @__PURE__ */ jsx(
+      Seo,
+      {
+        title: "Grant Search — AI-Ranked EU Funding Calls | CORDIS Explorer",
+        description: "Describe who you are and what you do. Claude scans open EU funding calls and returns the grants you're most likely to qualify for, ranked by fit.",
+        canonical: "/grant-search",
+        keywords: "EU funding calls, grant search, AI grant ranking, Horizon Europe open calls, EIC funding, Funding and Tenders portal",
+        jsonLd: {
+          "@context": "https://schema.org",
+          "@type": "WebPage",
+          name: "Grant Search",
+          description: "AI-powered search of open EU funding calls, ranked by how well you qualify.",
+          url: "https://cordis-explorer.eu/grant-search"
+        }
+      }
+    ),
     /* @__PURE__ */ jsxs("div", { className: "mb-8", children: [
       /* @__PURE__ */ jsx("span", { className: "inline-block bg-[color-mix(in_srgb,var(--color-eu-blue)_20%,transparent)] text-[var(--color-eu-blue-lighter)] border border-[color-mix(in_srgb,var(--color-eu-blue-lighter)_25%,transparent)] rounded-full text-xs font-semibold px-3 py-1 mb-4", children: "Quick Search · AI-Powered" }),
       /* @__PURE__ */ jsxs("h1", { className: "text-3xl font-extrabold text-[var(--color-text-primary)] leading-tight tracking-tight mb-3", children: [
@@ -4205,14 +4460,7 @@ function GrantSearchPage() {
       ] }),
       /* @__PURE__ */ jsx("p", { className: "text-[var(--color-text-secondary)] text-sm leading-relaxed", children: "Tell us who you are and what you do. Claude will scan open EU funding calls and return the ones you're most likely to qualify for." })
     ] }),
-    /* @__PURE__ */ jsx(
-      AuthGate,
-      {
-        title: "Sign in to search for grants",
-        description: "Create a free account to use AI-powered grant search. It takes less than a minute.",
-        children: /* @__PURE__ */ jsx(GrantSearchForm, {})
-      }
-    )
+    /* @__PURE__ */ jsx(GrantSearchForm, {})
   ] });
 }
 const ADMIN_EMAIL = "fredanaman@proton.me";
@@ -4246,7 +4494,17 @@ function AdminPage() {
     }
     fetchUsers();
   }, [user]);
-  if (loading || !user || user.email !== ADMIN_EMAIL) return null;
+  if (loading || !user || user.email !== ADMIN_EMAIL) {
+    return /* @__PURE__ */ jsx(
+      Seo,
+      {
+        title: "Admin — CORDIS Explorer",
+        description: "Internal administration console.",
+        canonical: "/admin",
+        noindex: true
+      }
+    );
+  }
   function fmt(iso) {
     if (!iso) return "—";
     return new Date(iso).toLocaleString("en-GB", {
@@ -4258,6 +4516,15 @@ function AdminPage() {
     });
   }
   return /* @__PURE__ */ jsxs("div", { className: "max-w-4xl mx-auto px-4 py-10", children: [
+    /* @__PURE__ */ jsx(
+      Seo,
+      {
+        title: "Admin — CORDIS Explorer",
+        description: "Internal administration console.",
+        canonical: "/admin",
+        noindex: true
+      }
+    ),
     /* @__PURE__ */ jsxs("div", { className: "mb-8", children: [
       /* @__PURE__ */ jsx("span", { className: "inline-block bg-red-500/10 text-red-400 border border-red-500/20 rounded-full text-xs font-semibold px-3 py-1 mb-4", children: "Admin" }),
       /* @__PURE__ */ jsx("h1", { className: "text-3xl font-extrabold text-[var(--color-text-primary)] tracking-tight", children: "User Management" }),
@@ -4381,6 +4648,22 @@ function MapPage() {
   const max = Math.max(...data.map((d) => d.projectCount), 1);
   const top10 = [...data].sort((a, b) => b.projectCount - a.projectCount).slice(0, 10);
   return /* @__PURE__ */ jsxs("div", { className: "flex flex-col", style: { height: "calc(100vh - 3.5rem)" }, children: [
+    /* @__PURE__ */ jsx(
+      Seo,
+      {
+        title: "EU Research Funding Map — Projects by Country | CORDIS Explorer",
+        description: "Interactive map of EU-funded research projects by country. Visualise how Horizon Europe, H2020 and FP7 funding is distributed across 27 EU member states and associated countries.",
+        canonical: "/map",
+        keywords: "EU research map, Horizon Europe by country, H2020 participation, EU funding distribution, European research geography",
+        jsonLd: {
+          "@context": "https://schema.org",
+          "@type": "WebPage",
+          name: "EU Research Funding Map",
+          description: "Choropleth map showing EU-funded research project participations by country.",
+          url: "https://cordis-explorer.eu/map"
+        }
+      }
+    ),
     /* @__PURE__ */ jsxs("div", { className: "flex items-center justify-between px-4 py-2.5 border-b border-[var(--color-border)] bg-[var(--color-bg-secondary)] shrink-0", children: [
       /* @__PURE__ */ jsxs("div", { className: "flex items-center gap-3", children: [
         /* @__PURE__ */ jsx("h1", { className: "text-sm font-bold text-[var(--color-text-primary)]", children: "Geographic Distribution" }),
@@ -4576,12 +4859,6 @@ function PartnerCard$1({ result }) {
   );
 }
 function PartnerMatchPage() {
-  useEffect(() => {
-    document.title = "Find EU Research Partners — CORDIS Explorer";
-    return () => {
-      document.title = "CORDIS Explorer — Search EU-Funded Research Projects";
-    };
-  }, []);
   const [description, setDescription] = useState("");
   const [country, setCountry] = useState("");
   const [maxResults, setMaxResults] = useState(10);
@@ -4594,161 +4871,179 @@ function PartnerMatchPage() {
     const clusterContext = cluster && HE_CLUSTERS[cluster] ? `[Horizon Europe Cluster ${cluster}: ${HE_CLUSTERS[cluster].label}] ` : "";
     mutate({ description: clusterContext + description.trim(), country: country || void 0, maxResults });
   }
-  return /* @__PURE__ */ jsx(AuthGate, { children: /* @__PURE__ */ jsx("div", { className: "min-h-screen px-4 py-10", children: /* @__PURE__ */ jsxs("div", { className: "max-w-3xl mx-auto", children: [
-    /* @__PURE__ */ jsxs("div", { className: "mb-8", children: [
-      /* @__PURE__ */ jsxs(
-        "div",
-        {
-          className: "inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-semibold mb-4",
-          style: {
-            background: "rgba(139,92,246,0.1)",
-            border: "1px solid rgba(139,92,246,0.25)",
-            color: "#a78bfa"
-          },
-          children: [
-            /* @__PURE__ */ jsx("svg", { className: "w-3.5 h-3.5", fill: "none", stroke: "currentColor", viewBox: "0 0 24 24", children: /* @__PURE__ */ jsx("path", { strokeLinecap: "round", strokeLinejoin: "round", strokeWidth: 2, d: "M17 20h5v-2a4 4 0 00-4-4h-1M9 20H4v-2a4 4 0 014-4h1m4-4a4 4 0 100-8 4 4 0 000 8z" }) }),
-            "AI-Powered · CORDIS Database"
-          ]
+  return /* @__PURE__ */ jsxs("div", { className: "min-h-screen px-4 py-10", children: [
+    /* @__PURE__ */ jsx(
+      Seo,
+      {
+        title: "Partner Match — Find EU Consortium Partners with AI | CORDIS Explorer",
+        description: "Describe your research project and AI finds the best-fit EU consortium partners from the CORDIS database. Match by expertise, country, and Horizon Europe cluster.",
+        canonical: "/partner-match",
+        keywords: "EU consortium partners, Horizon Europe partners, research partner finder, CORDIS partners, AI partner matching",
+        jsonLd: {
+          "@context": "https://schema.org",
+          "@type": "WebPage",
+          name: "Partner Matchmaking",
+          description: "AI-powered tool to find the best-fit EU consortium partners for your research project.",
+          url: "https://cordis-explorer.eu/partner-match"
         }
-      ),
-      /* @__PURE__ */ jsx("h1", { className: "text-3xl font-extrabold tracking-tight mb-2", style: { color: "var(--color-text-primary)" }, children: "Partner Matchmaking" }),
-      /* @__PURE__ */ jsx("p", { className: "text-sm", style: { color: "var(--color-text-muted)" }, children: "Describe your research project and find the best-fit EU consortium partners from the CORDIS database." })
-    ] }),
-    /* @__PURE__ */ jsxs("form", { onSubmit: handleSubmit, className: "space-y-4 mb-8", children: [
-      /* @__PURE__ */ jsx(
-        "div",
-        {
-          className: "rounded-xl p-4",
-          style: { background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.07)" },
-          children: /* @__PURE__ */ jsx(
-            ClusterBubbles,
-            {
-              selected: cluster,
-              onChange: (v) => {
-                setCluster(v);
-                reset();
-              },
-              label: "Horizon Europe Cluster (optional)"
-            }
-          )
-        }
-      ),
-      /* @__PURE__ */ jsxs("div", { children: [
-        /* @__PURE__ */ jsx("label", { className: "block text-xs font-semibold mb-2 uppercase tracking-wider", style: { color: "var(--color-text-muted)" }, children: "Project Description *" }),
-        /* @__PURE__ */ jsx(
-          "textarea",
+      }
+    ),
+    /* @__PURE__ */ jsxs("div", { className: "max-w-3xl mx-auto", children: [
+      /* @__PURE__ */ jsxs("div", { className: "mb-8", children: [
+        /* @__PURE__ */ jsxs(
+          "div",
           {
-            value: description,
-            onChange: (e) => {
-              setDescription(e.target.value);
-              reset();
-            },
-            rows: 5,
-            placeholder: "Describe your research project, technology area, and what kind of partners you're looking for…",
-            className: "w-full rounded-xl px-4 py-3 text-sm resize-none focus:outline-none",
+            className: "inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-semibold mb-4",
             style: {
-              background: "rgba(255,255,255,0.04)",
-              border: "1px solid rgba(255,255,255,0.1)",
-              color: "var(--color-text-primary)"
+              background: "rgba(139,92,246,0.1)",
+              border: "1px solid rgba(139,92,246,0.25)",
+              color: "#a78bfa"
             },
-            required: true,
-            minLength: 20
+            children: [
+              /* @__PURE__ */ jsx("svg", { className: "w-3.5 h-3.5", fill: "none", stroke: "currentColor", viewBox: "0 0 24 24", children: /* @__PURE__ */ jsx("path", { strokeLinecap: "round", strokeLinejoin: "round", strokeWidth: 2, d: "M17 20h5v-2a4 4 0 00-4-4h-1M9 20H4v-2a4 4 0 014-4h1m4-4a4 4 0 100-8 4 4 0 000 8z" }) }),
+              "AI-Powered · CORDIS Database"
+            ]
           }
         ),
-        /* @__PURE__ */ jsxs("p", { className: "text-[10px] mt-1", style: { color: description.length < 20 && description.length > 0 ? "#f87171" : "var(--color-text-muted)" }, children: [
-          description.length,
-          " / 20 characters minimum"
-        ] })
+        /* @__PURE__ */ jsx("h1", { className: "text-3xl font-extrabold tracking-tight mb-2", style: { color: "var(--color-text-primary)" }, children: "Partner Matchmaking" }),
+        /* @__PURE__ */ jsx("p", { className: "text-sm", style: { color: "var(--color-text-muted)" }, children: "Describe your research project and find the best-fit EU consortium partners from the CORDIS database." })
       ] }),
-      /* @__PURE__ */ jsxs("div", { className: "grid grid-cols-2 gap-4", children: [
+      /* @__PURE__ */ jsxs("form", { onSubmit: handleSubmit, className: "space-y-4 mb-8", children: [
+        /* @__PURE__ */ jsx(
+          "div",
+          {
+            className: "rounded-xl p-4",
+            style: { background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.07)" },
+            children: /* @__PURE__ */ jsx(
+              ClusterBubbles,
+              {
+                selected: cluster,
+                onChange: (v) => {
+                  setCluster(v);
+                  reset();
+                },
+                label: "Horizon Europe Cluster (optional)"
+              }
+            )
+          }
+        ),
         /* @__PURE__ */ jsxs("div", { children: [
-          /* @__PURE__ */ jsx("label", { className: "block text-xs font-semibold mb-2 uppercase tracking-wider", style: { color: "var(--color-text-muted)" }, children: "Partner Country (optional)" }),
-          /* @__PURE__ */ jsxs(
-            "select",
-            {
-              value: country,
-              onChange: (e) => setCountry(e.target.value),
-              className: "w-full rounded-xl px-4 py-2.5 text-sm focus:outline-none",
-              style: {
-                background: "rgba(255,255,255,0.04)",
-                border: "1px solid rgba(255,255,255,0.1)",
-                color: country ? "var(--color-text-primary)" : "var(--color-text-muted)"
-              },
-              children: [
-                /* @__PURE__ */ jsx("option", { value: "", children: "Any country" }),
-                countries.map((c) => /* @__PURE__ */ jsx("option", { value: c, children: c }, c))
-              ]
-            }
-          )
-        ] }),
-        /* @__PURE__ */ jsxs("div", { children: [
-          /* @__PURE__ */ jsx("label", { className: "block text-xs font-semibold mb-2 uppercase tracking-wider", style: { color: "var(--color-text-muted)" }, children: "Number of Results" }),
+          /* @__PURE__ */ jsx("label", { className: "block text-xs font-semibold mb-2 uppercase tracking-wider", style: { color: "var(--color-text-muted)" }, children: "Project Description *" }),
           /* @__PURE__ */ jsx(
-            "select",
+            "textarea",
             {
-              value: maxResults,
-              onChange: (e) => setMaxResults(Number(e.target.value)),
-              className: "w-full rounded-xl px-4 py-2.5 text-sm focus:outline-none",
+              value: description,
+              onChange: (e) => {
+                setDescription(e.target.value);
+                reset();
+              },
+              rows: 5,
+              placeholder: "Describe your research project, technology area, and what kind of partners you're looking for…",
+              className: "w-full rounded-xl px-4 py-3 text-sm resize-none focus:outline-none",
               style: {
                 background: "rgba(255,255,255,0.04)",
                 border: "1px solid rgba(255,255,255,0.1)",
                 color: "var(--color-text-primary)"
               },
-              children: [5, 10, 15].map((n) => /* @__PURE__ */ jsxs("option", { value: n, children: [
-                n,
-                " partners"
-              ] }, n))
+              required: true,
+              minLength: 20
             }
-          )
-        ] })
-      ] }),
-      /* @__PURE__ */ jsx(
-        "button",
-        {
-          type: "submit",
-          disabled: isPending || description.trim().length < 20,
-          className: "w-full py-3 rounded-xl text-sm font-bold transition-all duration-200 flex items-center justify-center gap-2",
-          style: {
-            background: isPending || description.trim().length < 20 ? "rgba(139,92,246,0.3)" : "linear-gradient(135deg, #7c3aed, #6d28d9)",
-            color: "white",
-            cursor: isPending || description.trim().length < 20 ? "not-allowed" : "pointer"
-          },
-          children: isPending ? /* @__PURE__ */ jsxs(Fragment, { children: [
-            /* @__PURE__ */ jsx("div", { className: "w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" }),
-            "Searching CORDIS & scoring with Claude…"
-          ] }) : /* @__PURE__ */ jsxs(Fragment, { children: [
-            /* @__PURE__ */ jsx("svg", { className: "w-4 h-4", fill: "none", stroke: "currentColor", viewBox: "0 0 24 24", children: /* @__PURE__ */ jsx("path", { strokeLinecap: "round", strokeLinejoin: "round", strokeWidth: 2, d: "M17 20h5v-2a4 4 0 00-4-4h-1M9 20H4v-2a4 4 0 014-4h1m4-4a4 4 0 100-8 4 4 0 000 8z" }) }),
-            "Find Partners"
+          ),
+          /* @__PURE__ */ jsxs("p", { className: "text-[10px] mt-1", style: { color: description.length < 20 && description.length > 0 ? "#f87171" : "var(--color-text-muted)" }, children: [
+            description.length,
+            " / 20 characters minimum"
           ] })
-        }
-      )
-    ] }),
-    error && /* @__PURE__ */ jsx(
-      "div",
-      {
-        className: "rounded-xl px-4 py-3 mb-6 text-sm",
-        style: { background: "rgba(248,113,113,0.1)", border: "1px solid rgba(248,113,113,0.25)", color: "#fca5a5" },
-        children: error.message
-      }
-    ),
-    data && /* @__PURE__ */ jsxs("div", { children: [
-      /* @__PURE__ */ jsx("div", { className: "flex items-center justify-between mb-4", children: /* @__PURE__ */ jsxs("div", { children: [
-        /* @__PURE__ */ jsxs("h2", { className: "font-bold text-base", style: { color: "var(--color-text-primary)" }, children: [
-          data.results.length,
-          " Partner",
-          data.results.length !== 1 ? "s" : "",
-          " Found"
         ] }),
-        /* @__PURE__ */ jsxs("p", { className: "text-xs mt-0.5", style: { color: "var(--color-text-muted)" }, children: [
-          "Scored from ",
-          data.totalCandidates,
-          " organisations · keywords: ",
-          data.keywords.join(", ")
-        ] })
-      ] }) }),
-      data.results.length === 0 ? /* @__PURE__ */ jsx("div", { className: "text-center py-12", style: { color: "var(--color-text-muted)" }, children: /* @__PURE__ */ jsx("p", { className: "text-sm", children: "No matching partners found. Try broadening your description." }) }) : /* @__PURE__ */ jsx("div", { className: "grid gap-4", children: data.results.map((result, i) => /* @__PURE__ */ jsx(PartnerCard$1, { result }, i)) })
+        /* @__PURE__ */ jsxs("div", { className: "grid grid-cols-2 gap-4", children: [
+          /* @__PURE__ */ jsxs("div", { children: [
+            /* @__PURE__ */ jsx("label", { className: "block text-xs font-semibold mb-2 uppercase tracking-wider", style: { color: "var(--color-text-muted)" }, children: "Partner Country (optional)" }),
+            /* @__PURE__ */ jsxs(
+              "select",
+              {
+                value: country,
+                onChange: (e) => setCountry(e.target.value),
+                className: "w-full rounded-xl px-4 py-2.5 text-sm focus:outline-none",
+                style: {
+                  background: "rgba(255,255,255,0.04)",
+                  border: "1px solid rgba(255,255,255,0.1)",
+                  color: country ? "var(--color-text-primary)" : "var(--color-text-muted)"
+                },
+                children: [
+                  /* @__PURE__ */ jsx("option", { value: "", children: "Any country" }),
+                  countries.map((c) => /* @__PURE__ */ jsx("option", { value: c, children: c }, c))
+                ]
+              }
+            )
+          ] }),
+          /* @__PURE__ */ jsxs("div", { children: [
+            /* @__PURE__ */ jsx("label", { className: "block text-xs font-semibold mb-2 uppercase tracking-wider", style: { color: "var(--color-text-muted)" }, children: "Number of Results" }),
+            /* @__PURE__ */ jsx(
+              "select",
+              {
+                value: maxResults,
+                onChange: (e) => setMaxResults(Number(e.target.value)),
+                className: "w-full rounded-xl px-4 py-2.5 text-sm focus:outline-none",
+                style: {
+                  background: "rgba(255,255,255,0.04)",
+                  border: "1px solid rgba(255,255,255,0.1)",
+                  color: "var(--color-text-primary)"
+                },
+                children: [5, 10, 15].map((n) => /* @__PURE__ */ jsxs("option", { value: n, children: [
+                  n,
+                  " partners"
+                ] }, n))
+              }
+            )
+          ] })
+        ] }),
+        /* @__PURE__ */ jsx(
+          "button",
+          {
+            type: "submit",
+            disabled: isPending || description.trim().length < 20,
+            className: "w-full py-3 rounded-xl text-sm font-bold transition-all duration-200 flex items-center justify-center gap-2",
+            style: {
+              background: isPending || description.trim().length < 20 ? "rgba(139,92,246,0.3)" : "linear-gradient(135deg, #7c3aed, #6d28d9)",
+              color: "white",
+              cursor: isPending || description.trim().length < 20 ? "not-allowed" : "pointer"
+            },
+            children: isPending ? /* @__PURE__ */ jsxs(Fragment, { children: [
+              /* @__PURE__ */ jsx("div", { className: "w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" }),
+              "Searching CORDIS & scoring with Claude…"
+            ] }) : /* @__PURE__ */ jsxs(Fragment, { children: [
+              /* @__PURE__ */ jsx("svg", { className: "w-4 h-4", fill: "none", stroke: "currentColor", viewBox: "0 0 24 24", children: /* @__PURE__ */ jsx("path", { strokeLinecap: "round", strokeLinejoin: "round", strokeWidth: 2, d: "M17 20h5v-2a4 4 0 00-4-4h-1M9 20H4v-2a4 4 0 014-4h1m4-4a4 4 0 100-8 4 4 0 000 8z" }) }),
+              "Find Partners"
+            ] })
+          }
+        )
+      ] }),
+      error && /* @__PURE__ */ jsx(
+        "div",
+        {
+          className: "rounded-xl px-4 py-3 mb-6 text-sm",
+          style: { background: "rgba(248,113,113,0.1)", border: "1px solid rgba(248,113,113,0.25)", color: "#fca5a5" },
+          children: error.message
+        }
+      ),
+      data && /* @__PURE__ */ jsxs("div", { children: [
+        /* @__PURE__ */ jsx("div", { className: "flex items-center justify-between mb-4", children: /* @__PURE__ */ jsxs("div", { children: [
+          /* @__PURE__ */ jsxs("h2", { className: "font-bold text-base", style: { color: "var(--color-text-primary)" }, children: [
+            data.results.length,
+            " Partner",
+            data.results.length !== 1 ? "s" : "",
+            " Found"
+          ] }),
+          /* @__PURE__ */ jsxs("p", { className: "text-xs mt-0.5", style: { color: "var(--color-text-muted)" }, children: [
+            "Scored from ",
+            data.totalCandidates,
+            " organisations · keywords: ",
+            data.keywords.join(", ")
+          ] })
+        ] }) }),
+        data.results.length === 0 ? /* @__PURE__ */ jsx("div", { className: "text-center py-12", style: { color: "var(--color-text-muted)" }, children: /* @__PURE__ */ jsx("p", { className: "text-sm", children: "No matching partners found. Try broadening your description." }) }) : /* @__PURE__ */ jsx("div", { className: "grid gap-4", children: data.results.map((result, i) => /* @__PURE__ */ jsx(PartnerCard$1, { result }, i)) })
+      ] })
     ] })
-  ] }) }) });
+  ] });
 }
 async function fetchPartnerSearch(filters) {
   const params = new URLSearchParams();
@@ -4828,9 +5123,6 @@ function PartnerSearchPage() {
       results_snapshot: partners.slice(0, 8).map((p) => ({ orgName: p.orgName, country: p.country, projectCount: p.projectCount }))
     });
   }, [data, filters.callId]);
-  useEffect(() => {
-    document.title = "Partner Search — CORDIS Explorer";
-  }, []);
   function applyFilters(updates) {
     const next = { ...filters, ...updates, page: 1 };
     setFilters(next);
@@ -4842,6 +5134,15 @@ function PartnerSearchPage() {
     setSearchParams(params, { replace: true });
   }
   return /* @__PURE__ */ jsxs("div", { className: "max-w-6xl mx-auto px-4 py-12", children: [
+    /* @__PURE__ */ jsx(
+      Seo,
+      {
+        title: "Partner Search Hub — Organisations with EU Research Track Record | CORDIS Explorer",
+        description: "Find organisations with a proven EU research track record. Filter by Horizon Europe cluster, call reference, or country. Enriched with CORDIS project data.",
+        canonical: "/partner-search",
+        keywords: "EU research partners, partner search, Horizon Europe organisations, consortium builder, research track record"
+      }
+    ),
     /* @__PURE__ */ jsxs("div", { className: "mb-8", children: [
       /* @__PURE__ */ jsx("h1", { className: "text-2xl font-bold text-[var(--color-text-primary)] mb-2", children: "Partner Search Hub" }),
       /* @__PURE__ */ jsx("p", { className: "text-[var(--color-text-secondary)] text-sm", children: "Find organisations with a proven track record in EU research projects. Filter by Horizon Europe cluster or call reference." })
@@ -4969,10 +5270,13 @@ const PLANS = [
 ];
 function CreditsPage() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { user, openAuthModal } = useAuth();
   const [annual, setAnnual] = useState(false);
   const [contactForm, setContactForm] = useState(null);
   const [submitted, setSubmitted] = useState(false);
+  const canonical = "/pricing";
+  const isAlias = location.pathname === "/credits";
   function handleCta(plan) {
     if (plan.ctaAction === "signup") {
       if (user) navigate("/");
@@ -4999,208 +5303,250 @@ Thanks`
     window.location.href = `mailto:hello@cordis-explorer.eu?subject=${subject}&body=${body}`;
     setSubmitted(true);
   }
-  return /* @__PURE__ */ jsx("div", { className: "min-h-screen px-4 py-14", style: { background: "#ffffff" }, children: /* @__PURE__ */ jsxs("div", { className: "max-w-4xl mx-auto", children: [
-    /* @__PURE__ */ jsxs("div", { className: "text-center mb-10", children: [
-      /* @__PURE__ */ jsx(
-        "h1",
-        {
-          className: "text-4xl font-bold tracking-tight mb-3",
-          style: { color: "#222222", letterSpacing: "-0.44px" },
-          children: "Unlock unlimited grant matching"
-        }
-      ),
-      /* @__PURE__ */ jsx("p", { className: "text-base max-w-lg mx-auto mb-6", style: { color: "#6a6a6a" }, children: "Find the right EU funding calls for your research. Every plan includes all four AI-powered matching tools." }),
-      /* @__PURE__ */ jsxs("div", { className: "inline-flex items-center gap-3 text-sm", children: [
-        /* @__PURE__ */ jsx("span", { style: { color: annual ? "#aaaaaa" : "#222222", fontWeight: annual ? 400 : 600 }, children: "Monthly" }),
-        /* @__PURE__ */ jsx(
-          "button",
-          {
-            onClick: () => setAnnual(!annual),
-            className: "relative w-11 h-6 rounded-full border-0 cursor-pointer transition-colors duration-200",
-            style: { background: annual ? "#ff385c" : "#dddddd" },
-            "aria-label": "Toggle annual billing",
-            children: /* @__PURE__ */ jsx(
-              "span",
-              {
-                className: "absolute top-0.5 w-5 h-5 rounded-full bg-white transition-transform duration-200",
-                style: { left: 2, transform: annual ? "translateX(20px)" : "translateX(0)" }
-              }
-            )
-          }
-        ),
-        /* @__PURE__ */ jsxs("span", { style: { color: annual ? "#222222" : "#aaaaaa", fontWeight: annual ? 600 : 400 }, children: [
-          "Annual",
-          /* @__PURE__ */ jsx("span", { className: "ml-1.5 text-xs font-bold", style: { color: "#ff385c" }, children: "Save 2 months" })
-        ] })
-      ] })
-    ] }),
+  return /* @__PURE__ */ jsxs("div", { className: "min-h-screen px-4 py-14", style: { background: "#ffffff" }, children: [
     /* @__PURE__ */ jsx(
-      "div",
+      Seo,
       {
-        className: "rounded-2xl p-5 mb-10 flex flex-wrap gap-4 justify-center",
-        style: { background: "#f7f7f7", border: "1px solid #ebebeb" },
-        children: [
-          { label: "Grant Search", icon: "🔍" },
-          { label: "Profile Match", icon: "🧠" },
-          { label: "GrantMatch Wizard", icon: "✅" },
-          { label: "Partner Matchmaking", icon: "🤝" }
-        ].map((t) => /* @__PURE__ */ jsxs("div", { className: "flex items-center gap-2 text-sm font-medium", style: { color: "#484848" }, children: [
-          /* @__PURE__ */ jsx("span", { children: t.icon }),
-          /* @__PURE__ */ jsx("span", { children: t.label })
-        ] }, t.label))
+        title: "Pricing — CORDIS Explorer Plans for Researchers & SMEs",
+        description: "Free, Pro and Team plans for AI-powered EU grant matching. Find the right Horizon Europe funding calls for your research with unlimited AI queries on Pro and Team.",
+        canonical,
+        noindex: isAlias,
+        keywords: "CORDIS Explorer pricing, EU grant matching pricing, Horizon Europe tools pricing, research funding SaaS",
+        jsonLd: {
+          "@context": "https://schema.org",
+          "@type": "Product",
+          name: "CORDIS Explorer",
+          description: "AI-powered search and matching for EU-funded research projects and grants.",
+          brand: { "@type": "Brand", name: "CORDIS Explorer" },
+          offers: [
+            {
+              "@type": "Offer",
+              name: "Free",
+              price: "0",
+              priceCurrency: "EUR",
+              description: "5 AI queries/month, all matching tools, browse CORDIS projects"
+            },
+            {
+              "@type": "Offer",
+              name: "Pro",
+              price: "29",
+              priceCurrency: "EUR",
+              description: "100 AI queries/month, priority support, export results"
+            },
+            {
+              "@type": "Offer",
+              name: "Team",
+              price: "99",
+              priceCurrency: "EUR",
+              description: "500 AI queries/month, up to 5 seats, API access"
+            }
+          ]
+        }
       }
     ),
-    /* @__PURE__ */ jsx("div", { className: "grid grid-cols-1 sm:grid-cols-3 gap-5 mb-10", children: PLANS.map((plan) => /* @__PURE__ */ jsxs(
-      "div",
-      {
-        className: "relative rounded-2xl p-7 flex flex-col",
-        style: {
-          background: "#ffffff",
-          border: plan.highlight ? "2px solid #ff385c" : "1px solid #ebebeb",
-          boxShadow: plan.highlight ? "rgba(255,56,92,0.12) 0px 0px 0px 4px, rgba(0,0,0,0.02) 0px 0px 0px 1px, rgba(0,0,0,0.06) 0px 4px 16px" : "rgba(0,0,0,0.02) 0px 0px 0px 1px, rgba(0,0,0,0.04) 0px 2px 6px, rgba(0,0,0,0.1) 0px 4px 8px"
-        },
-        children: [
-          plan.highlight && /* @__PURE__ */ jsx(
-            "div",
-            {
-              className: "absolute -top-3.5 left-1/2 -translate-x-1/2 text-[11px] font-bold rounded-full px-3 py-1",
-              style: { background: "#ff385c", color: "#ffffff" },
-              children: "MOST POPULAR"
-            }
-          ),
-          /* @__PURE__ */ jsxs("div", { className: "mb-5", children: [
-            /* @__PURE__ */ jsx("p", { className: "text-xs font-bold uppercase tracking-wider mb-2", style: { color: "#6a6a6a" }, children: plan.name }),
-            /* @__PURE__ */ jsx("div", { className: "flex items-baseline gap-1 mb-1", children: annual && plan.annualPrice ? /* @__PURE__ */ jsxs(Fragment, { children: [
-              /* @__PURE__ */ jsx("span", { className: "text-3xl font-bold", style: { color: "#222222", letterSpacing: "-0.44px" }, children: plan.annualPrice.replace("/year", "") }),
-              /* @__PURE__ */ jsx("span", { className: "text-sm", style: { color: "#6a6a6a" }, children: "/year" })
-            ] }) : /* @__PURE__ */ jsxs(Fragment, { children: [
-              /* @__PURE__ */ jsx("span", { className: "text-3xl font-bold", style: { color: "#222222", letterSpacing: "-0.44px" }, children: plan.price }),
-              /* @__PURE__ */ jsx("span", { className: "text-sm", style: { color: "#6a6a6a" }, children: plan.period })
-            ] }) }),
-            annual && plan.annualSaving && /* @__PURE__ */ jsx("p", { className: "text-xs font-semibold", style: { color: "#16a34a" }, children: plan.annualSaving }),
-            /* @__PURE__ */ jsx("p", { className: "text-xs mt-1", style: { color: "#6a6a6a" }, children: plan.description })
-          ] }),
-          /* @__PURE__ */ jsx("ul", { className: "space-y-2.5 flex-1 mb-6", children: plan.features.map((f) => /* @__PURE__ */ jsxs("li", { className: "flex items-center gap-2.5 text-sm", style: { color: "#484848" }, children: [
-            /* @__PURE__ */ jsx(
-              "span",
-              {
-                className: "w-4 h-4 rounded-full flex items-center justify-center shrink-0",
-                style: { background: plan.highlight ? "#ff385c" : "#f2f2f2" },
-                children: /* @__PURE__ */ jsx("svg", { className: "w-2.5 h-2.5", fill: "none", stroke: plan.highlight ? "#ffffff" : "#484848", viewBox: "0 0 24 24", children: /* @__PURE__ */ jsx("path", { strokeLinecap: "round", strokeLinejoin: "round", strokeWidth: 3, d: "M5 13l4 4L19 7" }) })
-              }
-            ),
-            f
-          ] }, f)) }),
+    /* @__PURE__ */ jsxs("div", { className: "max-w-4xl mx-auto", children: [
+      /* @__PURE__ */ jsxs("div", { className: "text-center mb-10", children: [
+        /* @__PURE__ */ jsx(
+          "h1",
+          {
+            className: "text-4xl font-bold tracking-tight mb-3",
+            style: { color: "#222222", letterSpacing: "-0.44px" },
+            children: "Unlock unlimited grant matching"
+          }
+        ),
+        /* @__PURE__ */ jsx("p", { className: "text-base max-w-lg mx-auto mb-6", style: { color: "#6a6a6a" }, children: "Find the right EU funding calls for your research. Every plan includes all four AI-powered matching tools." }),
+        /* @__PURE__ */ jsxs("div", { className: "inline-flex items-center gap-3 text-sm", children: [
+          /* @__PURE__ */ jsx("span", { style: { color: annual ? "#aaaaaa" : "#222222", fontWeight: annual ? 400 : 600 }, children: "Monthly" }),
           /* @__PURE__ */ jsx(
             "button",
             {
-              className: "w-full py-3 rounded-xl text-sm font-semibold transition-all duration-200 cursor-pointer border-0",
-              style: plan.highlight ? { background: "#222222", color: "#ffffff" } : { background: "#f2f2f2", color: "#222222" },
-              onClick: () => handleCta(plan),
-              children: plan.cta
+              onClick: () => setAnnual(!annual),
+              className: "relative w-11 h-6 rounded-full border-0 cursor-pointer transition-colors duration-200",
+              style: { background: annual ? "#ff385c" : "#dddddd" },
+              "aria-label": "Toggle annual billing",
+              children: /* @__PURE__ */ jsx(
+                "span",
+                {
+                  className: "absolute top-0.5 w-5 h-5 rounded-full bg-white transition-transform duration-200",
+                  style: { left: 2, transform: annual ? "translateX(20px)" : "translateX(0)" }
+                }
+              )
             }
-          )
-        ]
-      },
-      plan.name
-    )) }),
-    contactForm && !submitted && /* @__PURE__ */ jsx(
-      "div",
-      {
-        className: "fixed inset-0 z-50 flex items-center justify-center",
-        style: { background: "rgba(0,0,0,0.4)" },
-        onClick: (e) => {
-          if (e.target === e.currentTarget) setContactForm(null);
-        },
-        children: /* @__PURE__ */ jsxs(
-          "form",
-          {
-            onSubmit: handleContactSubmit,
-            className: "rounded-2xl p-8 w-full max-w-md mx-4",
-            style: { background: "#ffffff", boxShadow: "0 24px 48px rgba(0,0,0,0.2)" },
-            children: [
-              /* @__PURE__ */ jsxs("h2", { className: "text-xl font-bold mb-1", style: { color: "#222222" }, children: [
-                "Upgrade to ",
-                contactForm.plan
-              ] }),
-              /* @__PURE__ */ jsx("p", { className: "text-sm mb-5", style: { color: "#6a6a6a" }, children: "We'll follow up within 24 hours to get you set up." }),
-              /* @__PURE__ */ jsx("label", { className: "block text-xs font-semibold mb-1.5", style: { color: "#484848" }, children: "Work email" }),
-              /* @__PURE__ */ jsx(
-                "input",
-                {
-                  type: "email",
-                  required: true,
-                  value: contactForm.email,
-                  onChange: (e) => setContactForm({ ...contactForm, email: e.target.value }),
-                  className: "w-full rounded-lg px-3 py-2.5 text-sm mb-4",
-                  style: { border: "1px solid #dddddd", outline: "none", background: "#fafafa" },
-                  placeholder: "you@organisation.eu"
-                }
-              ),
-              /* @__PURE__ */ jsx("label", { className: "block text-xs font-semibold mb-1.5", style: { color: "#484848" }, children: "Organisation name" }),
-              /* @__PURE__ */ jsx(
-                "input",
-                {
-                  type: "text",
-                  required: true,
-                  value: contactForm.org,
-                  onChange: (e) => setContactForm({ ...contactForm, org: e.target.value }),
-                  className: "w-full rounded-lg px-3 py-2.5 text-sm mb-6",
-                  style: { border: "1px solid #dddddd", outline: "none", background: "#fafafa" },
-                  placeholder: "Your university or company"
-                }
-              ),
-              /* @__PURE__ */ jsxs("div", { className: "flex gap-3", children: [
-                /* @__PURE__ */ jsx(
-                  "button",
-                  {
-                    type: "button",
-                    onClick: () => setContactForm(null),
-                    className: "flex-1 py-2.5 rounded-xl text-sm font-semibold cursor-pointer border-0",
-                    style: { background: "#f2f2f2", color: "#484848" },
-                    children: "Cancel"
-                  }
-                ),
-                /* @__PURE__ */ jsx(
-                  "button",
-                  {
-                    type: "submit",
-                    className: "flex-1 py-2.5 rounded-xl text-sm font-semibold cursor-pointer border-0",
-                    style: { background: "#ff385c", color: "#ffffff" },
-                    children: "Send request"
-                  }
-                )
-              ] })
-            ]
-          }
-        )
-      }
-    ),
-    submitted && /* @__PURE__ */ jsxs("div", { className: "text-center rounded-2xl p-8 mb-10", style: { background: "#f0fdf4", border: "1px solid #bbf7d0" }, children: [
-      /* @__PURE__ */ jsx("p", { className: "text-lg font-semibold mb-1", style: { color: "#166534" }, children: "Request sent" }),
-      /* @__PURE__ */ jsxs("p", { className: "text-sm", style: { color: "#15803d" }, children: [
-        "We'll be in touch at ",
-        contactForm == null ? void 0 : contactForm.email,
-        " within 24 hours."
-      ] })
-    ] }),
-    /* @__PURE__ */ jsxs("div", { className: "text-center", children: [
+          ),
+          /* @__PURE__ */ jsxs("span", { style: { color: annual ? "#222222" : "#aaaaaa", fontWeight: annual ? 600 : 400 }, children: [
+            "Annual",
+            /* @__PURE__ */ jsx("span", { className: "ml-1.5 text-xs font-bold", style: { color: "#ff385c" }, children: "Save 2 months" })
+          ] })
+        ] })
+      ] }),
       /* @__PURE__ */ jsx(
-        "button",
+        "div",
         {
-          onClick: () => navigate(-1),
-          className: "text-sm font-medium hover:underline cursor-pointer bg-transparent border-0",
-          style: { color: "#6a6a6a" },
-          children: "← Go back"
+          className: "rounded-2xl p-5 mb-10 flex flex-wrap gap-4 justify-center",
+          style: { background: "#f7f7f7", border: "1px solid #ebebeb" },
+          children: [
+            { label: "Grant Search", icon: "🔍" },
+            { label: "Profile Match", icon: "🧠" },
+            { label: "GrantMatch Wizard", icon: "✅" },
+            { label: "Partner Matchmaking", icon: "🤝" }
+          ].map((t) => /* @__PURE__ */ jsxs("div", { className: "flex items-center gap-2 text-sm font-medium", style: { color: "#484848" }, children: [
+            /* @__PURE__ */ jsx("span", { children: t.icon }),
+            /* @__PURE__ */ jsx("span", { children: t.label })
+          ] }, t.label))
         }
       ),
-      !user && /* @__PURE__ */ jsxs("p", { className: "text-xs mt-3", style: { color: "#aaaaaa" }, children: [
-        "Already have an account?",
-        " ",
-        /* @__PURE__ */ jsx("a", { href: "/", className: "underline font-medium", style: { color: "#ff385c" }, children: "Sign in" })
+      /* @__PURE__ */ jsx("div", { className: "grid grid-cols-1 sm:grid-cols-3 gap-5 mb-10", children: PLANS.map((plan) => /* @__PURE__ */ jsxs(
+        "div",
+        {
+          className: "relative rounded-2xl p-7 flex flex-col",
+          style: {
+            background: "#ffffff",
+            border: plan.highlight ? "2px solid #ff385c" : "1px solid #ebebeb",
+            boxShadow: plan.highlight ? "rgba(255,56,92,0.12) 0px 0px 0px 4px, rgba(0,0,0,0.02) 0px 0px 0px 1px, rgba(0,0,0,0.06) 0px 4px 16px" : "rgba(0,0,0,0.02) 0px 0px 0px 1px, rgba(0,0,0,0.04) 0px 2px 6px, rgba(0,0,0,0.1) 0px 4px 8px"
+          },
+          children: [
+            plan.highlight && /* @__PURE__ */ jsx(
+              "div",
+              {
+                className: "absolute -top-3.5 left-1/2 -translate-x-1/2 text-[11px] font-bold rounded-full px-3 py-1",
+                style: { background: "#ff385c", color: "#ffffff" },
+                children: "MOST POPULAR"
+              }
+            ),
+            /* @__PURE__ */ jsxs("div", { className: "mb-5", children: [
+              /* @__PURE__ */ jsx("p", { className: "text-xs font-bold uppercase tracking-wider mb-2", style: { color: "#6a6a6a" }, children: plan.name }),
+              /* @__PURE__ */ jsx("div", { className: "flex items-baseline gap-1 mb-1", children: annual && plan.annualPrice ? /* @__PURE__ */ jsxs(Fragment, { children: [
+                /* @__PURE__ */ jsx("span", { className: "text-3xl font-bold", style: { color: "#222222", letterSpacing: "-0.44px" }, children: plan.annualPrice.replace("/year", "") }),
+                /* @__PURE__ */ jsx("span", { className: "text-sm", style: { color: "#6a6a6a" }, children: "/year" })
+              ] }) : /* @__PURE__ */ jsxs(Fragment, { children: [
+                /* @__PURE__ */ jsx("span", { className: "text-3xl font-bold", style: { color: "#222222", letterSpacing: "-0.44px" }, children: plan.price }),
+                /* @__PURE__ */ jsx("span", { className: "text-sm", style: { color: "#6a6a6a" }, children: plan.period })
+              ] }) }),
+              annual && plan.annualSaving && /* @__PURE__ */ jsx("p", { className: "text-xs font-semibold", style: { color: "#16a34a" }, children: plan.annualSaving }),
+              /* @__PURE__ */ jsx("p", { className: "text-xs mt-1", style: { color: "#6a6a6a" }, children: plan.description })
+            ] }),
+            /* @__PURE__ */ jsx("ul", { className: "space-y-2.5 flex-1 mb-6", children: plan.features.map((f) => /* @__PURE__ */ jsxs("li", { className: "flex items-center gap-2.5 text-sm", style: { color: "#484848" }, children: [
+              /* @__PURE__ */ jsx(
+                "span",
+                {
+                  className: "w-4 h-4 rounded-full flex items-center justify-center shrink-0",
+                  style: { background: plan.highlight ? "#ff385c" : "#f2f2f2" },
+                  children: /* @__PURE__ */ jsx("svg", { className: "w-2.5 h-2.5", fill: "none", stroke: plan.highlight ? "#ffffff" : "#484848", viewBox: "0 0 24 24", children: /* @__PURE__ */ jsx("path", { strokeLinecap: "round", strokeLinejoin: "round", strokeWidth: 3, d: "M5 13l4 4L19 7" }) })
+                }
+              ),
+              f
+            ] }, f)) }),
+            /* @__PURE__ */ jsx(
+              "button",
+              {
+                className: "w-full py-3 rounded-xl text-sm font-semibold transition-all duration-200 cursor-pointer border-0",
+                style: plan.highlight ? { background: "#222222", color: "#ffffff" } : { background: "#f2f2f2", color: "#222222" },
+                onClick: () => handleCta(plan),
+                children: plan.cta
+              }
+            )
+          ]
+        },
+        plan.name
+      )) }),
+      contactForm && !submitted && /* @__PURE__ */ jsx(
+        "div",
+        {
+          className: "fixed inset-0 z-50 flex items-center justify-center",
+          style: { background: "rgba(0,0,0,0.4)" },
+          onClick: (e) => {
+            if (e.target === e.currentTarget) setContactForm(null);
+          },
+          children: /* @__PURE__ */ jsxs(
+            "form",
+            {
+              onSubmit: handleContactSubmit,
+              className: "rounded-2xl p-8 w-full max-w-md mx-4",
+              style: { background: "#ffffff", boxShadow: "0 24px 48px rgba(0,0,0,0.2)" },
+              children: [
+                /* @__PURE__ */ jsxs("h2", { className: "text-xl font-bold mb-1", style: { color: "#222222" }, children: [
+                  "Upgrade to ",
+                  contactForm.plan
+                ] }),
+                /* @__PURE__ */ jsx("p", { className: "text-sm mb-5", style: { color: "#6a6a6a" }, children: "We'll follow up within 24 hours to get you set up." }),
+                /* @__PURE__ */ jsx("label", { className: "block text-xs font-semibold mb-1.5", style: { color: "#484848" }, children: "Work email" }),
+                /* @__PURE__ */ jsx(
+                  "input",
+                  {
+                    type: "email",
+                    required: true,
+                    value: contactForm.email,
+                    onChange: (e) => setContactForm({ ...contactForm, email: e.target.value }),
+                    className: "w-full rounded-lg px-3 py-2.5 text-sm mb-4",
+                    style: { border: "1px solid #dddddd", outline: "none", background: "#fafafa" },
+                    placeholder: "you@organisation.eu"
+                  }
+                ),
+                /* @__PURE__ */ jsx("label", { className: "block text-xs font-semibold mb-1.5", style: { color: "#484848" }, children: "Organisation name" }),
+                /* @__PURE__ */ jsx(
+                  "input",
+                  {
+                    type: "text",
+                    required: true,
+                    value: contactForm.org,
+                    onChange: (e) => setContactForm({ ...contactForm, org: e.target.value }),
+                    className: "w-full rounded-lg px-3 py-2.5 text-sm mb-6",
+                    style: { border: "1px solid #dddddd", outline: "none", background: "#fafafa" },
+                    placeholder: "Your university or company"
+                  }
+                ),
+                /* @__PURE__ */ jsxs("div", { className: "flex gap-3", children: [
+                  /* @__PURE__ */ jsx(
+                    "button",
+                    {
+                      type: "button",
+                      onClick: () => setContactForm(null),
+                      className: "flex-1 py-2.5 rounded-xl text-sm font-semibold cursor-pointer border-0",
+                      style: { background: "#f2f2f2", color: "#484848" },
+                      children: "Cancel"
+                    }
+                  ),
+                  /* @__PURE__ */ jsx(
+                    "button",
+                    {
+                      type: "submit",
+                      className: "flex-1 py-2.5 rounded-xl text-sm font-semibold cursor-pointer border-0",
+                      style: { background: "#ff385c", color: "#ffffff" },
+                      children: "Send request"
+                    }
+                  )
+                ] })
+              ]
+            }
+          )
+        }
+      ),
+      submitted && /* @__PURE__ */ jsxs("div", { className: "text-center rounded-2xl p-8 mb-10", style: { background: "#f0fdf4", border: "1px solid #bbf7d0" }, children: [
+        /* @__PURE__ */ jsx("p", { className: "text-lg font-semibold mb-1", style: { color: "#166534" }, children: "Request sent" }),
+        /* @__PURE__ */ jsxs("p", { className: "text-sm", style: { color: "#15803d" }, children: [
+          "We'll be in touch at ",
+          contactForm == null ? void 0 : contactForm.email,
+          " within 24 hours."
+        ] })
+      ] }),
+      /* @__PURE__ */ jsxs("div", { className: "text-center", children: [
+        /* @__PURE__ */ jsx(
+          "button",
+          {
+            onClick: () => navigate(-1),
+            className: "text-sm font-medium hover:underline cursor-pointer bg-transparent border-0",
+            style: { color: "#6a6a6a" },
+            children: "← Go back"
+          }
+        ),
+        !user && /* @__PURE__ */ jsxs("p", { className: "text-xs mt-3", style: { color: "#aaaaaa" }, children: [
+          "Already have an account?",
+          " ",
+          /* @__PURE__ */ jsx("a", { href: "/", className: "underline font-medium", style: { color: "#ff385c" }, children: "Sign in" })
+        ] })
       ] })
     ] })
-  ] }) });
+  ] });
 }
 const RADIUS = 13;
 const COLORS = {
@@ -5498,12 +5844,6 @@ function HeroGraphAnimation() {
 }
 function KnowledgeGraphPage() {
   var _a, _b, _c, _d, _e;
-  useEffect(() => {
-    document.title = "EU Research Knowledge Graph — CORDIS Explorer";
-    return () => {
-      document.title = "CORDIS Explorer — Search EU-Funded Research Projects";
-    };
-  }, []);
   const [nodes, setNodes] = useState([]);
   const [edges, setEdges] = useState([]);
   const [selected, setSelected] = useState(null);
@@ -5733,6 +6073,22 @@ function KnowledgeGraphPage() {
   }, []);
   const liveSelected = selected ? nodes.find((n) => n.id === selected.id) ?? selected : null;
   const hasGraph = nodes.length > 0;
+  const graphSeo = /* @__PURE__ */ jsx(
+    Seo,
+    {
+      title: "EU Research Knowledge Graph — Explore CORDIS EURIO | CORDIS Explorer",
+      description: "Interactive knowledge graph of EU-funded research. Explore relationships between organisations, projects and countries from the CORDIS EURIO semantic graph.",
+      canonical: "/graph",
+      keywords: "EU research knowledge graph, EURIO, CORDIS graph, research network visualisation, Horizon Europe network",
+      jsonLd: {
+        "@context": "https://schema.org",
+        "@type": "WebPage",
+        name: "EU Research Knowledge Graph",
+        description: "Interactive force-directed visualisation of the CORDIS EURIO knowledge graph.",
+        url: "https://cordis-explorer.eu/graph"
+      }
+    }
+  );
   if (!hasGraph) {
     return /* @__PURE__ */ jsxs(
       "div",
@@ -5740,6 +6096,7 @@ function KnowledgeGraphPage() {
         className: "relative flex flex-col items-center justify-center min-h-[calc(100vh-4rem)] px-4 overflow-hidden",
         style: { background: "linear-gradient(180deg, #fff5f7 0%, #ffffff 60%)" },
         children: [
+          graphSeo,
           /* @__PURE__ */ jsx(HeroGraphAnimation, {}),
           /* @__PURE__ */ jsxs("div", { className: "relative z-10 flex flex-col items-center text-center max-w-2xl", children: [
             /* @__PURE__ */ jsxs(
@@ -5896,6 +6253,7 @@ function KnowledgeGraphPage() {
     );
   }
   return /* @__PURE__ */ jsxs("div", { className: "flex flex-col", style: { height: "calc(100vh - 4rem)" }, children: [
+    graphSeo,
     /* @__PURE__ */ jsxs(
       "div",
       {
@@ -6236,16 +6594,41 @@ function useOrgCoApplicants(orgName) {
 function OrgPage() {
   const { encodedName } = useParams();
   const orgName = decodeURIComponent(encodedName ?? "");
-  useEffect(() => {
-    document.title = `${orgName} — CORDIS Explorer`;
-  }, [orgName]);
   const { data: summary, isLoading: summaryLoading } = useOrgSummary(orgName);
   const { data: projects = [], isLoading: projectsLoading } = useOrgProjects(orgName);
   const { data: coApplicants = [], isLoading: coLoading } = useOrgCoApplicants(orgName);
   if (!orgName) {
     return /* @__PURE__ */ jsx("p", { className: "p-8 text-[var(--color-text-secondary)]", children: "No organisation specified." });
   }
+  const canonicalPath = `/org/${encodeURIComponent(orgName)}`;
+  const projectCount = (summary == null ? void 0 : summary.projectCount) ?? 0;
+  const country = summary == null ? void 0 : summary.country;
+  const orgDescription = projectCount > 0 ? `${orgName}${country ? ` (${country})` : ""} has participated in ${projectCount} EU-funded research project${projectCount === 1 ? "" : "s"} across Horizon Europe, H2020 and FP7. View projects, partners and collaboration network.` : `${orgName}${country ? ` (${country})` : ""} — profile, EU research projects and frequent partners on CORDIS Explorer.`;
   return /* @__PURE__ */ jsxs("div", { className: "max-w-5xl mx-auto px-4 py-12 space-y-10", children: [
+    /* @__PURE__ */ jsx(
+      Seo,
+      {
+        title: `${orgName} — EU Research Projects & Partners | CORDIS Explorer`,
+        description: orgDescription,
+        canonical: canonicalPath,
+        ogType: "profile",
+        jsonLd: [
+          breadcrumbJsonLd([
+            { name: "Home", path: "/" },
+            { name: "Organisations", path: "/search" },
+            { name: orgName, path: canonicalPath }
+          ]),
+          {
+            "@context": "https://schema.org",
+            "@type": "Organization",
+            name: orgName,
+            url: `https://cordis-explorer.eu${canonicalPath}`,
+            ...country ? { address: { "@type": "PostalAddress", addressCountry: country } } : {},
+            description: orgDescription
+          }
+        ]
+      }
+    ),
     /* @__PURE__ */ jsxs("div", { children: [
       /* @__PURE__ */ jsx("h1", { className: "text-2xl font-bold text-[var(--color-text-primary)] mb-1", children: orgName }),
       summaryLoading ? /* @__PURE__ */ jsx(Spinner, {}) : summary && /* @__PURE__ */ jsxs("div", { className: "flex flex-wrap gap-6 mt-4", children: [
@@ -6607,9 +6990,6 @@ function EventsPage() {
     cluster: selectedCluster ?? void 0,
     page: 1
   });
-  useEffect(() => {
-    document.title = "Brokerage Events — CORDIS Explorer";
-  }, []);
   const filtered = selectedCluster ? EVENT_SOURCES.filter(
     (s) => {
       var _a;
@@ -6617,6 +6997,22 @@ function EventsPage() {
     }
   ) : EVENT_SOURCES;
   return /* @__PURE__ */ jsxs("div", { className: "max-w-5xl mx-auto px-4 py-12", children: [
+    /* @__PURE__ */ jsx(
+      Seo,
+      {
+        title: "EU Brokerage Events — Horizon Europe Matchmaking | CORDIS Explorer",
+        description: "EU research brokerage events and matchmaking sessions from the Enterprise Europe Network and Horizon Europe ecosystem. Filter by cluster and country to find partnership opportunities.",
+        canonical: "/events",
+        keywords: "EU brokerage events, Horizon Europe matchmaking, consortium building events, EEN events, research networking EU",
+        jsonLd: {
+          "@context": "https://schema.org",
+          "@type": "CollectionPage",
+          name: "EU Brokerage Events",
+          description: "Collection of EU research brokerage, matchmaking and consortium-building events across the Horizon Europe ecosystem.",
+          url: "https://cordis-explorer.eu/events"
+        }
+      }
+    ),
     /* @__PURE__ */ jsxs("div", { className: "mb-8", children: [
       /* @__PURE__ */ jsx("h1", { className: "text-2xl font-bold text-[var(--color-text-primary)] mb-2", children: "Brokerage Events" }),
       /* @__PURE__ */ jsx("p", { className: "text-sm text-[var(--color-text-secondary)]", children: "EU research networking and brokerage events from across the Horizon Europe ecosystem. Browse official sources for partnership opportunities, matchmaking sessions, and consortium-building events." })
@@ -6736,9 +7132,6 @@ function MscaPage() {
   const [page, setPage] = useState(parseInt(searchParams.get("page") ?? "1", 10));
   const [supervisorArea, setSupervisorArea] = useState(searchParams.get("area") ?? "");
   const [supervisorInput, setSupervisorInput] = useState(supervisorArea);
-  useEffect(() => {
-    document.title = "MSCA Search — CORDIS Explorer";
-  }, []);
   const { data: projects = [], isLoading: projectsLoading } = useMscaProjects({
     keyword,
     mscaType,
@@ -6785,6 +7178,22 @@ function MscaPage() {
     setSearchParams({ tab: "supervisors", area: supervisorInput }, { replace: true });
   }
   return /* @__PURE__ */ jsxs("div", { className: "max-w-5xl mx-auto px-4 py-12", children: [
+    /* @__PURE__ */ jsx(
+      Seo,
+      {
+        title: "MSCA Explorer — Marie Skłodowska-Curie Projects & Supervisors | CORDIS Explorer",
+        description: "Search Marie Skłodowska-Curie Actions (MSCA) projects — Postdoctoral Fellowships, Doctoral Networks, Staff Exchanges and COFUND — and discover host organisations and supervisors by research area.",
+        canonical: "/msca",
+        keywords: "MSCA, Marie Skłodowska-Curie, MSCA Postdoctoral Fellowships, MSCA Doctoral Networks, MSCA supervisors, EU research fellowships",
+        jsonLd: {
+          "@context": "https://schema.org",
+          "@type": "WebPage",
+          name: "MSCA Research Explorer",
+          description: "Search Marie Skłodowska-Curie Actions projects and discover host organisations and supervisors.",
+          url: "https://cordis-explorer.eu/msca"
+        }
+      }
+    ),
     /* @__PURE__ */ jsxs("div", { className: "mb-8", children: [
       /* @__PURE__ */ jsx("h1", { className: "text-2xl font-bold text-[var(--color-text-primary)] mb-2", children: "MSCA Research Explorer" }),
       /* @__PURE__ */ jsx("p", { className: "text-sm text-[var(--color-text-secondary)]", children: "Search Marie Skłodowska-Curie Actions projects, and discover host organisations and supervisors by research area." })
@@ -7015,11 +7424,18 @@ function HistoryPage() {
   const [activeTab, setActiveTab] = useState("all");
   const { data, isLoading, error } = useHistory(activeTab === "all" ? void 0 : activeTab);
   const deleteHistory = useDeleteHistory();
-  useEffect(() => {
-    document.title = "Search History — CORDIS Explorer";
-  }, []);
+  const seo = /* @__PURE__ */ jsx(
+    Seo,
+    {
+      title: "Search History — CORDIS Explorer",
+      description: "Your saved CORDIS Explorer search history — project searches, grant matches, partner searches and MSCA queries.",
+      canonical: "/history",
+      noindex: true
+    }
+  );
   if (!user) {
     return /* @__PURE__ */ jsxs("div", { className: "max-w-2xl mx-auto px-4 py-24 text-center", children: [
+      seo,
       /* @__PURE__ */ jsx("p", { className: "text-4xl mb-4", children: "🔐" }),
       /* @__PURE__ */ jsx("h1", { className: "text-xl font-semibold text-[var(--color-text-primary)] mb-2", children: "Sign in to view your history" }),
       /* @__PURE__ */ jsx("p", { className: "text-sm text-[var(--color-text-secondary)] mb-6", children: "Your search history is saved automatically when you're signed in." }),
@@ -7029,6 +7445,7 @@ function HistoryPage() {
   const items = (data == null ? void 0 : data.items) ?? [];
   const total = (data == null ? void 0 : data.total) ?? 0;
   return /* @__PURE__ */ jsxs("div", { className: "max-w-4xl mx-auto px-4 py-10", children: [
+    seo,
     /* @__PURE__ */ jsxs("div", { className: "flex items-center justify-between mb-6", children: [
       /* @__PURE__ */ jsxs("div", { children: [
         /* @__PURE__ */ jsx("h1", { className: "text-2xl font-bold text-[var(--color-text-primary)]", children: "Search History" }),
@@ -7290,6 +7707,7 @@ function ServerAuthProvider({ children }) {
   return /* @__PURE__ */ jsx(AuthContext.Provider, { value, children });
 }
 function render(url) {
+  resetHead();
   const queryClient = new QueryClient({
     defaultOptions: {
       queries: { retry: false }
@@ -7298,7 +7716,8 @@ function render(url) {
   const html = renderToString(
     /* @__PURE__ */ jsx(React__default.StrictMode, { children: /* @__PURE__ */ jsx(QueryClientProvider, { client: queryClient, children: /* @__PURE__ */ jsx(StaticRouter, { location: url, children: /* @__PURE__ */ jsx(ServerAuthProvider, { children: /* @__PURE__ */ jsx(App, {}) }) }) }) })
   );
-  return html;
+  const head = renderHead();
+  return { html, head };
 }
 export {
   render

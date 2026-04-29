@@ -1,17 +1,27 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import ProfileWizard from '../components/grant-match/ProfileWizard';
 import ClusterBubbles from '../components/common/ClusterBubbles';
+import { Seo } from '../lib/seo';
 
 export default function GrantMatchPage() {
-  useEffect(() => {
-    document.title = 'AI Grant Matching — Find EU Grants for Your Startup | CORDIS Explorer';
-    return () => { document.title = 'CORDIS Explorer — Search EU-Funded Research Projects'; };
-  }, []);
-
   const [cluster, setCluster] = useState<string | null>(null);
 
   return (
     <div className="max-w-2xl mx-auto px-4 py-10">
+      <Seo
+        title="AI Grant Matching — Find EU Grants for Your Startup | CORDIS Explorer"
+        description="Answer a few questions and AI scans 900+ open EU funding calls to find the grants that best match your startup's sector, stage, and R&D profile. 100% free."
+        canonical="/grant-match"
+        keywords="EU grant matching, AI grant finder, startup grants EU, Horizon Europe matching, EIC Accelerator, EU funding for startups"
+        jsonLd={{
+          '@context': 'https://schema.org',
+          '@type': 'WebPage',
+          name: 'AI Grant Matching',
+          description:
+            'AI-powered wizard that matches your startup to the most relevant open EU funding calls.',
+          url: 'https://cordis-explorer.eu/grant-match',
+        }}
+      />
       <div className="mb-8">
         <span className="inline-block bg-[color-mix(in_srgb,var(--color-amber)_12%,transparent)] text-[var(--color-amber)] border border-[color-mix(in_srgb,var(--color-amber)_25%,transparent)] rounded-full text-xs font-semibold px-3 py-1 mb-4">
           100% Free · AI-Powered

@@ -1,8 +1,23 @@
 import ProfileMatchWizard from '../components/profile-match/ProfileMatchWizard';
+import { Seo } from '../lib/seo';
 
 export default function ProfileMatchPage() {
   return (
     <div className="max-w-2xl mx-auto px-4 py-10">
+      <Seo
+        title="Profile Match — EU Grants Matched to Your Profile | CORDIS Explorer"
+        description="Describe what your organisation does and get best-fit EU funding calls without picking sectors manually. Claude reads your profile and matches it to open calls."
+        canonical="/profile-match"
+        keywords="profile-based grant matching, EU research grants, organisation funding match, Horizon Europe match"
+        jsonLd={{
+          '@context': 'https://schema.org',
+          '@type': 'WebPage',
+          name: 'Profile Match',
+          description:
+            'Match your organisation profile to open EU funding calls using AI.',
+          url: 'https://cordis-explorer.eu/profile-match',
+        }}
+      />
       <div className="mb-8">
         <span className="inline-block bg-[color-mix(in_srgb,var(--color-eu-blue-lighter)_12%,transparent)] text-[var(--color-eu-blue-lighter)] border border-[color-mix(in_srgb,var(--color-eu-blue-lighter)_25%,transparent)] rounded-full text-xs font-semibold px-3 py-1 mb-4">
           Profile-Based Matching · AI-Powered

@@ -1,16 +1,78 @@
+# CORDIS Explorer — robots.txt
+# https://cordis-explorer.eu
+
 User-agent: *
 Allow: /
+Disallow: /admin
+Disallow: /history
+Disallow: /credits
+Disallow: /api/
 
 # AI crawlers — explicitly allowed
 User-agent: GPTBot
 Allow: /
+Disallow: /admin
+Disallow: /history
+Disallow: /api/
+
 User-agent: ChatGPT-User
 Allow: /
+Disallow: /admin
+Disallow: /history
+Disallow: /api/
+
 User-agent: PerplexityBot
 Allow: /
+Disallow: /admin
+Disallow: /history
+Disallow: /api/
+
 User-agent: ClaudeBot
 Allow: /
+Disallow: /admin
+Disallow: /history
+Disallow: /api/
+
+User-agent: Claude-Web
+Allow: /
+Disallow: /admin
+Disallow: /history
+Disallow: /api/
+
 User-agent: Google-Extended
 Allow: /
+Disallow: /admin
+Disallow: /history
+Disallow: /api/
+
+User-agent: CCBot
+Allow: /
+Disallow: /admin
+Disallow: /history
+Disallow: /api/
+
+User-agent: Bytespider
+Allow: /
+Disallow: /admin
+Disallow: /history
+Disallow: /api/
+
+User-agent: anthropic-ai
+Allow: /
+Disallow: /admin
+Disallow: /history
+Disallow: /api/
+
+User-agent: cohere-ai
+Allow: /
+Disallow: /admin
+Disallow: /history
+Disallow: /api/
+
+User-agent: Applebot-Extended
+Allow: /
+Disallow: /admin
+Disallow: /history
+Disallow: /api/
 
 Sitemap: https://cordis-explorer.eu/sitemap.xml

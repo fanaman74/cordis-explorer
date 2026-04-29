@@ -1,15 +1,11 @@
-import { useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useOrgSummary, useOrgProjects, useOrgCoApplicants } from '../hooks/useOrgDetail';
 import Spinner from '../components/common/Spinner';
+import { Seo, breadcrumbJsonLd } from '../lib/seo';
 
 export default function OrgPage() {
   const { encodedName } = useParams<{ encodedName: string }>();
   const orgName = decodeURIComponent(encodedName ?? '');
-
-  useEffect(() => {
-    document.title = `${orgName} — CORDIS Explorer`;
-  }, [orgName]);
 
   const { data: summary, isLoading: summaryLoading } = useOrgSummary(orgName);
   const { data: projects = [], isLoading: projectsLoading } = useOrgProjects(orgName);
@@ -19,8 +15,36 @@ export default function OrgPage() {
     return <p className="p-8 text-[var(--color-text-secondary)]">No organisation specified.</p>;
   }
 
+  const canonicalPath = `/org/${encodeURIComponent(orgName)}`;
+  const projectCount = summary?.projectCount ?? 0;
+  const country = summary?.country;
+  const orgDescription = projectCount > 0
+    ? `${orgName}${country ? ` (${country})` : ''} has participated in ${projectCount} EU-funded research project${projectCount === 1 ? '' : 's'} across Horizon Europe, H2020 and FP7. View projects, partners and collaboration network.`
+    : `${orgName}${country ? ` (${country})` : ''} — profile, EU research projects and frequent partners on CORDIS Explorer.`;
+
   return (
     <div className="max-w-5xl mx-auto px-4 py-12 space-y-10">
+      <Seo
+        title={`${orgName} — EU Research Projects & Partners | CORDIS Explorer`}
+        description={orgDescription}
+        canonical={canonicalPath}
+        ogType="profile"
+        jsonLd={[
+          breadcrumbJsonLd([
+            { name: 'Home', path: '/' },
+            { name: 'Organisations', path: '/search' },
+            { name: orgName, path: canonicalPath },
+          ]),
+          {
+            '@context': 'https://schema.org',
+            '@type': 'Organization',
+            name: orgName,
+            url: `https://cordis-explorer.eu${canonicalPath}`,
+            ...(country ? { address: { '@type': 'PostalAddress', addressCountry: country } } : {}),
+            description: orgDescription,
+          },
+        ]}
+      />
       {/* Header */}
       <div>
         <h1 className="text-2xl font-bold text-[var(--color-text-primary)] mb-1">{orgName}</h1>

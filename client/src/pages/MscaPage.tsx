@@ -6,6 +6,7 @@ import type { MscaType } from '../hooks/useMscaSearch';
 import Spinner from '../components/common/Spinner';
 import EmptyState from '../components/common/EmptyState';
 import Pagination from '../components/common/Pagination';
+import { Seo } from '../lib/seo';
 
 const PAGE_SIZE = 20;
 
@@ -31,10 +32,6 @@ export default function MscaPage() {
   const [page, setPage] = useState(parseInt(searchParams.get('page') ?? '1', 10));
   const [supervisorArea, setSupervisorArea] = useState(searchParams.get('area') ?? '');
   const [supervisorInput, setSupervisorInput] = useState(supervisorArea);
-
-  useEffect(() => {
-    document.title = 'MSCA Search — CORDIS Explorer';
-  }, []);
 
   const { data: projects = [], isLoading: projectsLoading } = useMscaProjects({
     keyword,
@@ -92,6 +89,20 @@ export default function MscaPage() {
 
   return (
     <div className="max-w-5xl mx-auto px-4 py-12">
+      <Seo
+        title="MSCA Explorer — Marie Skłodowska-Curie Projects & Supervisors | CORDIS Explorer"
+        description="Search Marie Skłodowska-Curie Actions (MSCA) projects — Postdoctoral Fellowships, Doctoral Networks, Staff Exchanges and COFUND — and discover host organisations and supervisors by research area."
+        canonical="/msca"
+        keywords="MSCA, Marie Skłodowska-Curie, MSCA Postdoctoral Fellowships, MSCA Doctoral Networks, MSCA supervisors, EU research fellowships"
+        jsonLd={{
+          '@context': 'https://schema.org',
+          '@type': 'WebPage',
+          name: 'MSCA Research Explorer',
+          description:
+            'Search Marie Skłodowska-Curie Actions projects and discover host organisations and supervisors.',
+          url: 'https://cordis-explorer.eu/msca',
+        }}
+      />
       <div className="mb-8">
         <h1 className="text-2xl font-bold text-[var(--color-text-primary)] mb-2">
           MSCA Research Explorer

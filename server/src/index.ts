@@ -94,8 +94,19 @@ const ssrDistPath = resolve(__dirname, '../../client/dist-ssr');
 app.use(express.static(clientDistPath, { index: false }));
 
 // Load SSR module and HTML template
-let ssrRender: ((url: string) => string) | null = null;
+type SsrRender = (url: string) => { html: string; head: string } | string;
+let ssrRender: SsrRender | null = null;
 let htmlTemplate = '';
+
+const HEAD_BLOCK_RE = /<!--app-head-->[\s\S]*?<!--\/app-head-->/;
+
+function injectHead(html: string, headHtml: string): string {
+  if (HEAD_BLOCK_RE.test(html)) {
+    return html.replace(HEAD_BLOCK_RE, `<!--app-head-->\n    ${headHtml}\n    <!--/app-head-->`);
+  }
+  // No markers — inject before </head> as a fallback.
+  return html.replace('</head>', `${headHtml}\n  </head>`);
+}
 
 const ssrEntryPath = resolve(ssrDistPath, 'entry-server.js');
 const htmlPath = resolve(clientDistPath, 'index.html');
@@ -128,10 +139,12 @@ function injectRuntimeConfig(html: string): string {
 app.get('*', (req, res) => {
   if (ssrRender && htmlTemplate) {
     try {
-      const appHtml = ssrRender(req.originalUrl);
-      const html = injectRuntimeConfig(
-        htmlTemplate.replace('<div id="root"></div>', `<div id="root">${appHtml}</div>`)
-      );
+      const result = ssrRender(req.originalUrl);
+      const appHtml = typeof result === 'string' ? result : result.html;
+      const headHtml = typeof result === 'string' ? '' : result.head;
+      let html = htmlTemplate.replace('<div id="root"></div>', `<div id="root">${appHtml}</div>`);
+      if (headHtml) html = injectHead(html, headHtml);
+      html = injectRuntimeConfig(html);
       res.status(200).set({ 'Content-Type': 'text/html' }).send(html);
       return;
     } catch (err) {

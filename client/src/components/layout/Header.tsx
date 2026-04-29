@@ -1,12 +1,6 @@
-import { Link, useLocation } from 'react-router-dom';
-import { useAuth } from '../../contexts/AuthContext';
-
-const ADMIN_EMAIL = 'fredanaman@proton.me';
+import { Link } from 'react-router-dom';
 
 export default function Header() {
-  const { user, openAuthModal, signOut } = useAuth();
-  const location = useLocation();
-
   return (
     <header
       className="sticky top-0 z-40"
@@ -33,7 +27,7 @@ export default function Header() {
           </span>
         </Link>
 
-        {/* Nav actions */}
+        {/* Nav */}
         <div className="flex items-center gap-3">
           <a
             href="https://cordis.europa.eu/datalab"
@@ -46,47 +40,6 @@ export default function Header() {
           >
             About
           </a>
-
-          {user ? (
-            <div className="flex items-center gap-2">
-              <Link
-                to="/history"
-                className="text-sm font-medium no-underline transition-colors duration-200 hidden sm:block"
-                style={{ color: location.pathname === '/history' ? '#222222' : '#6a6a6a' }}
-                onMouseEnter={e => ((e.currentTarget as HTMLElement).style.color = '#222222')}
-                onMouseLeave={e => ((e.currentTarget as HTMLElement).style.color = location.pathname === '/history' ? '#222222' : '#6a6a6a')}
-              >
-                History
-              </Link>
-              <span className="text-xs hidden sm:block max-w-[140px] truncate" style={{ color: '#6a6a6a' }}>
-                {user.email}
-              </span>
-              {user.email === ADMIN_EMAIL && (
-                <Link
-                  to="/admin"
-                  className="btn-secondary btn-sm btn-pill no-underline"
-                  style={{ height: '32px', fontSize: '12px', color: '#e00b41', borderColor: 'rgba(224,11,65,0.3)' }}
-                >
-                  Admin
-                </Link>
-              )}
-              <button
-                onClick={signOut}
-                className="btn-secondary btn-sm btn-pill"
-                style={{ height: '32px', fontSize: '13px' }}
-              >
-                Sign out
-              </button>
-            </div>
-          ) : (
-            <button
-              onClick={openAuthModal}
-              className="btn-primary btn-sm btn-pill"
-              style={{ height: '36px' }}
-            >
-              Sign in
-            </button>
-          )}
         </div>
       </div>
     </header>

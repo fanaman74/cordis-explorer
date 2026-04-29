@@ -1,10 +1,11 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { usePartnerMatch } from '../hooks/usePartnerMatch';
 import type { PartnerResult } from '../hooks/usePartnerMatch';
 import { useCountries } from '../hooks/useCountries';
 import ClusterBubbles from '../components/common/ClusterBubbles';
 import { HE_CLUSTERS } from '../api/query-builder';
+import { Seo } from '../lib/seo';
 
 function ScoreBadge({ score }: { score: number }) {
   const color =
@@ -105,11 +106,6 @@ function PartnerCard({ result }: { result: PartnerResult }) {
 }
 
 export default function PartnerMatchPage() {
-  useEffect(() => {
-    document.title = 'Find EU Research Partners — CORDIS Explorer';
-    return () => { document.title = 'CORDIS Explorer — Search EU-Funded Research Projects'; };
-  }, []);
-
   const [description, setDescription] = useState('');
   const [country, setCountry] = useState('');
   const [maxResults, setMaxResults] = useState(10);
@@ -128,6 +124,20 @@ export default function PartnerMatchPage() {
 
   return (
     <div className="min-h-screen px-4 py-10">
+        <Seo
+          title="Partner Match — Find EU Consortium Partners with AI | CORDIS Explorer"
+          description="Describe your research project and AI finds the best-fit EU consortium partners from the CORDIS database. Match by expertise, country, and Horizon Europe cluster."
+          canonical="/partner-match"
+          keywords="EU consortium partners, Horizon Europe partners, research partner finder, CORDIS partners, AI partner matching"
+          jsonLd={{
+            '@context': 'https://schema.org',
+            '@type': 'WebPage',
+            name: 'Partner Matchmaking',
+            description:
+              'AI-powered tool to find the best-fit EU consortium partners for your research project.',
+            url: 'https://cordis-explorer.eu/partner-match',
+          }}
+        />
         <div className="max-w-3xl mx-auto">
           {/* Header */}
           <div className="mb-8">
@@ -296,7 +306,6 @@ export default function PartnerMatchPage() {
             </div>
           )}
         </div>
-      </div>
     </div>
   );
 }

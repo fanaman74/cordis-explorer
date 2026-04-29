@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { executeSparql } from '../api/sparql-client';
 import { HE_CLUSTERS } from '../api/query-builder';
+import { Seo } from '../lib/seo';
 
 const ACCENT_COLORS = ['#ff385c', '#2563eb', '#16a34a', '#d97706', '#7c3aed'];
 
@@ -375,12 +376,72 @@ export default function HomePage() {
   const { user, openAuthModal } = useAuth();
   const visibleTools = TOOLS;
 
-  useEffect(() => {
-    document.title = 'CORDIS Explorer — Search EU-Funded Research Projects';
-  }, []);
-
   return (
     <div className="min-h-screen" style={{ background: '#ffffff' }}>
+      <Seo
+        title="CORDIS Explorer — Search EU-Funded Research Projects"
+        description="Explore 50,000+ EU-funded research projects from Horizon Europe, H2020 and FP7. Search CORDIS data, discover partner organisations, find grants, and visualise research networks — powered by AI."
+        canonical="/"
+        keywords="CORDIS, EU research, Horizon Europe, H2020, FP7, EU grants, research projects, European funding, grant search, research partners, SPARQL, knowledge graph"
+        jsonLd={[
+          {
+            '@context': 'https://schema.org',
+            '@type': 'WebApplication',
+            name: 'CORDIS Explorer',
+            url: 'https://cordis-explorer.eu/',
+            description:
+              'AI-powered search platform for 50,000+ EU-funded research projects from Horizon Europe, H2020 and FP7.',
+            applicationCategory: 'BusinessApplication',
+            operatingSystem: 'Web',
+            offers: { '@type': 'Offer', price: '0', priceCurrency: 'EUR' },
+            featureList: [
+              'Search EU-funded research projects',
+              'AI-powered grant matching',
+              'Research partner discovery',
+              'Knowledge graph visualisation',
+              'Geographic map of EU research',
+            ],
+          },
+          {
+            '@context': 'https://schema.org',
+            '@type': 'FAQPage',
+            mainEntity: [
+              {
+                '@type': 'Question',
+                name: 'What is CORDIS Explorer?',
+                acceptedAnswer: {
+                  '@type': 'Answer',
+                  text: 'CORDIS Explorer is an AI-powered search platform for EU-funded research projects. It connects to the official CORDIS EURIO Knowledge Graph maintained by the European Commission and makes it easy to search, filter, and analyse over 50,000 projects funded under Horizon Europe, Horizon 2020, and FP7.',
+                },
+              },
+              {
+                '@type': 'Question',
+                name: 'How many EU research projects can I search?',
+                acceptedAnswer: {
+                  '@type': 'Answer',
+                  text: 'CORDIS Explorer covers more than 50,000 EU-funded research projects representing over €100 billion in public research funding across Horizon Europe, Horizon 2020, and FP7.',
+                },
+              },
+              {
+                '@type': 'Question',
+                name: 'What is the difference between CORDIS Explorer and the official CORDIS portal?',
+                acceptedAnswer: {
+                  '@type': 'Answer',
+                  text: 'CORDIS Explorer adds AI-powered grant matching, partner discovery, and knowledge graph visualisation on top of the official CORDIS data. Describe your research in plain language and the AI ranks the most relevant open EU funding calls for your organisation.',
+                },
+              },
+              {
+                '@type': 'Question',
+                name: 'Which EU funding programmes are covered?',
+                acceptedAnswer: {
+                  '@type': 'Answer',
+                  text: 'Horizon Europe (2021–2027), Horizon 2020 (2014–2020), and the Seventh Framework Programme (FP7, 2007–2013).',
+                },
+              },
+            ],
+          },
+        ]}
+      />
 
       {/* ══════════════════════════════════
           HERO — dark cinematic

@@ -9,6 +9,7 @@ import FilterPanel from '../components/search/FilterPanel';
 import ActiveFilters from '../components/search/ActiveFilters';
 import SearchResults from '../components/search/SearchResults';
 import Pagination from '../components/common/Pagination';
+import { Seo } from '../lib/seo';
 
 const PAGE_SIZE = 25;
 
@@ -77,12 +78,6 @@ export default function SearchPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const filters = filtersFromParams(searchParams);
 
-  useEffect(() => {
-    const kw = filters.keyword;
-    document.title = kw
-      ? `"${kw}" — CORDIS Project Search`
-      : 'Search EU Research Projects — CORDIS Explorer';
-  }, [filters.keyword]);
   const { data: projects = [], isLoading, isError, error } = useProjectSearch(filters);
   const saveHistory = useSaveHistory();
   const savedKeyRef = useRef<string>('');
@@ -143,8 +138,22 @@ export default function SearchPage() {
     updateFilters({ ...filters, page });
   }
 
+  const kw = filters.keyword;
+  const seoTitle = kw
+    ? `"${kw}" — Search EU Research Projects | CORDIS Explorer`
+    : 'Search EU Research Projects — CORDIS Explorer';
+  const seoDescription = kw
+    ? `Search results for "${kw}" across 50,000+ EU-funded research projects from Horizon Europe, H2020 and FP7. Filter by country, programme, cluster, and more.`
+    : 'Search 50,000+ EU-funded research projects from Horizon Europe, H2020 and FP7. Filter by country, programme, Horizon Europe cluster, organisation, TRL and date.';
+
   return (
     <div className="max-w-7xl mx-auto px-4 py-8">
+      <Seo
+        title={seoTitle}
+        description={seoDescription}
+        canonical="/search"
+        keywords="search EU research projects, CORDIS search, Horizon Europe search, H2020 projects, FP7 projects, EU grant search"
+      />
       <div className="space-y-4">
         <SearchBar value={filters.keyword || ''} onChange={handleKeywordChange} />
         <FilterPanel filters={filters} onFilterChange={handleFilterChange} />

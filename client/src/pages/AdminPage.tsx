@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { supabase } from '../lib/supabase';
 import { useNavigate } from 'react-router-dom';
+import { Seo } from '../lib/seo';
 
 interface AdminUser {
   id: string;
@@ -49,7 +50,16 @@ export default function AdminPage() {
     fetchUsers();
   }, [user]);
 
-  if (loading || !user || user.email !== ADMIN_EMAIL) return null;
+  if (loading || !user || user.email !== ADMIN_EMAIL) {
+    return (
+      <Seo
+        title="Admin — CORDIS Explorer"
+        description="Internal administration console."
+        canonical="/admin"
+        noindex
+      />
+    );
+  }
 
   function fmt(iso: string | null) {
     if (!iso) return '—';
@@ -61,6 +71,12 @@ export default function AdminPage() {
 
   return (
     <div className="max-w-4xl mx-auto px-4 py-10">
+      <Seo
+        title="Admin — CORDIS Explorer"
+        description="Internal administration console."
+        canonical="/admin"
+        noindex
+      />
       <div className="mb-8">
         <span className="inline-block bg-red-500/10 text-red-400 border border-red-500/20 rounded-full text-xs font-semibold px-3 py-1 mb-4">
           Admin
