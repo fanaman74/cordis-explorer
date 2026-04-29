@@ -1,6 +1,5 @@
 import { Link } from 'react-router-dom';
 import { useEffect, useState } from 'react';
-import { useAuth } from '../contexts/AuthContext';
 import { executeSparql } from '../api/sparql-client';
 import { HE_CLUSTERS } from '../api/query-builder';
 import { Seo } from '../lib/seo';
@@ -373,7 +372,6 @@ function LatestAdditions() {
 }
 
 export default function HomePage() {
-  const { user, openAuthModal } = useAuth();
   const visibleTools = TOOLS;
 
   return (
@@ -518,25 +516,23 @@ export default function HomePage() {
             <strong style={{ color: 'rgba(255,255,255,0.75)', fontWeight: 600 }}>grant matching</strong>{' '}
             to network analysis — explore 50,000+ EU‑funded research projects.
           </p>
-          <button
-            onClick={openAuthModal}
+          <Link
+            to="/search"
             style={{
               display: 'inline-flex', alignItems: 'center', gap: 8,
-              background: '#ff385c', color: 'white', border: 'none', cursor: 'pointer',
+              background: '#ff385c', color: 'white', textDecoration: 'none',
               borderRadius: 7, padding: '0 28px', height: 44,
               fontSize: 13, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase',
               fontFamily: 'inherit', transition: 'background 0.2s, transform 0.1s',
             }}
             onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = '#e00b41'; }}
             onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = '#ff385c'; }}
-            onMouseDown={e => { (e.currentTarget as HTMLElement).style.transform = 'scale(0.96)'; }}
-            onMouseUp={e => { (e.currentTarget as HTMLElement).style.transform = ''; }}
           >
             EXPLORE NOW
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M7 17L17 7M17 7H7M17 7v10" />
             </svg>
-          </button>
+          </Link>
         </div>
 
         {/* ── Center: animated Europe map ── */}
@@ -621,7 +617,7 @@ export default function HomePage() {
             Explore our tools
           </h2>
           <p className="text-sm" style={{ color: '#6a6a6a' }}>
-            {user ? 'All AI tools unlocked.' : 'Sign in to unlock AI-powered matching.'}
+            All tools are free to use — no sign-in required.
           </p>
         </div>
 
@@ -630,7 +626,7 @@ export default function HomePage() {
             <Link
               key={tool.to}
               to={tool.to}
-              onClick={tool.requiresAuth && !user ? (e: React.MouseEvent) => { e.preventDefault(); openAuthModal(); } : undefined}
+              onClick={undefined}
               className="group rounded-2xl p-6 flex items-start gap-4 no-underline transition-all duration-200"
               style={{
                 background: '#ffffff',
@@ -655,12 +651,6 @@ export default function HomePage() {
               <div className="flex-1 min-w-0 pt-0.5">
                 <div className="flex items-center gap-2 mb-1">
                   <span className="font-semibold text-sm" style={{ color: '#222222', letterSpacing: '-0.01em' }}>{tool.label}</span>
-                  {tool.requiresAuth && (
-                    <span className="rounded-full text-[10px] font-bold px-2 py-0.5"
-                      style={{ background: 'linear-gradient(135deg, #ff385c, #e00b41)', color: '#ffffff', letterSpacing: '0.04em' }}>
-                      PRO
-                    </span>
-                  )}
                   {tool.badge && (
                     <span className="rounded-full text-[10px] font-bold px-2 py-0.5"
                       style={{ background: 'rgba(255,56,92,0.1)', color: '#ff385c', border: '1px solid rgba(255,56,92,0.2)' }}>
@@ -749,25 +739,23 @@ export default function HomePage() {
       {/* ══════════════════════════════════
           BOTTOM CTA
       ══════════════════════════════════ */}
-      {!user && (
-        <section className="dot-grid py-20">
-          <div className="max-w-2xl mx-auto px-6 text-center">
-            <h2 className="font-bold mb-4" style={{ fontSize: 'clamp(32px, 4vw, 48px)', color: '#1a1a1a', letterSpacing: '-0.04em' }}>
-              Ready to find your next EU grant?
-            </h2>
-            <p className="text-base mb-8" style={{ color: '#6a6a6a' }}>
-              Create a free account and run your first AI‑powered grant search in under a minute.
-            </p>
-            <button className="btn-brand btn-pill flex items-center gap-2 mx-auto" onClick={openAuthModal}
-              style={{ height: 52, fontSize: 16, paddingLeft: 32, paddingRight: 32 }}>
-              Get started — it's free
-              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M7 17L17 7M17 7H7M17 7v10"/>
-              </svg>
-            </button>
-          </div>
-        </section>
-      )}
+      <section className="dot-grid py-20">
+        <div className="max-w-2xl mx-auto px-6 text-center">
+          <h2 className="font-bold mb-4" style={{ fontSize: 'clamp(32px, 4vw, 48px)', color: '#1a1a1a', letterSpacing: '-0.04em' }}>
+            Ready to find your next EU grant?
+          </h2>
+          <p className="text-base mb-8" style={{ color: '#6a6a6a' }}>
+            AI-powered grant matching — free, no sign-in required.
+          </p>
+          <Link to="/grant-match" className="btn-brand btn-pill flex items-center gap-2 mx-auto no-underline"
+            style={{ height: 52, fontSize: 16, paddingLeft: 32, paddingRight: 32 }}>
+            Find grants now
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M7 17L17 7M17 7H7M17 7v10"/>
+            </svg>
+          </Link>
+        </div>
+      </section>
     </div>
   );
 }

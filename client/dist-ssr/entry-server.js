@@ -1,6 +1,6 @@
 import { jsx, jsxs, Fragment } from "react/jsx-runtime";
 import * as React from "react";
-import React__default, { createContext, useContext, useEffect, useState, useRef, useCallback, lazy, Suspense, useMemo } from "react";
+import React__default, { useEffect, useState, createContext, useContext, useRef, useCallback, lazy, Suspense, useMemo } from "react";
 import { renderToString } from "react-dom/server";
 import { useQuery, keepPreviousData, useMutation, useQueryClient, QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { stripBasename, UNSAFE_warning, UNSAFE_invariant, matchPath, joinPaths, Action } from "@remix-run/router";
@@ -679,19 +679,6 @@ function Footer() {
       ] })
     ] })
   ] }) });
-}
-const runtimeConfig = typeof window !== "undefined" ? window.__RUNTIME_CONFIG__ : void 0;
-const supabaseUrl = (runtimeConfig == null ? void 0 : runtimeConfig.SUPABASE_URL) || "https://swmvjiygqsuctoltoosi.supabase.co";
-const supabaseAnonKey = (runtimeConfig == null ? void 0 : runtimeConfig.SUPABASE_ANON_KEY) || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN3bXZqaXlncXN1Y3RvbHRvb3NpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM2Njc4MDIsImV4cCI6MjA4OTI0MzgwMn0.DnJPprVjeqYlfMZXGg8No4zO7UBbj4-Brsf6jAySKQo";
-const supabase = createClient(
-  supabaseUrl,
-  supabaseAnonKey
-);
-const AuthContext = createContext(null);
-function useAuth() {
-  const ctx = useContext(AuthContext);
-  if (!ctx) throw new Error("useAuth must be used within AuthProvider");
-  return ctx;
 }
 const HE_CLUSTERS = {
   "1": { label: "Health", short: "Health", color: "#f43f5e", patterns: ["HORIZON-HEALTH-", "HORIZON-CL1-"] },
@@ -1991,7 +1978,6 @@ function LatestAdditions() {
   ] }) });
 }
 function HomePage() {
-  const { user, openAuthModal } = useAuth();
   const visibleTools = TOOLS;
   return /* @__PURE__ */ jsxs("div", { className: "min-h-screen", style: { background: "#ffffff" }, children: [
     /* @__PURE__ */ jsx(
@@ -2134,17 +2120,16 @@ function HomePage() {
           "to network analysis — explore 50,000+ EU‑funded research projects."
         ] }),
         /* @__PURE__ */ jsxs(
-          "button",
+          Link,
           {
-            onClick: openAuthModal,
+            to: "/search",
             style: {
               display: "inline-flex",
               alignItems: "center",
               gap: 8,
               background: "#ff385c",
               color: "white",
-              border: "none",
-              cursor: "pointer",
+              textDecoration: "none",
               borderRadius: 7,
               padding: "0 28px",
               height: 44,
@@ -2160,12 +2145,6 @@ function HomePage() {
             },
             onMouseLeave: (e) => {
               e.currentTarget.style.background = "#ff385c";
-            },
-            onMouseDown: (e) => {
-              e.currentTarget.style.transform = "scale(0.96)";
-            },
-            onMouseUp: (e) => {
-              e.currentTarget.style.transform = "";
             },
             children: [
               "EXPLORE NOW",
@@ -2220,16 +2199,13 @@ function HomePage() {
     /* @__PURE__ */ jsxs("section", { className: "max-w-5xl mx-auto px-6 py-16", children: [
       /* @__PURE__ */ jsxs("div", { className: "mb-8", children: [
         /* @__PURE__ */ jsx("h2", { className: "text-3xl font-bold mb-1.5", style: { color: "#222222", letterSpacing: "-0.04em" }, children: "Explore our tools" }),
-        /* @__PURE__ */ jsx("p", { className: "text-sm", style: { color: "#6a6a6a" }, children: user ? "All AI tools unlocked." : "Sign in to unlock AI-powered matching." })
+        /* @__PURE__ */ jsx("p", { className: "text-sm", style: { color: "#6a6a6a" }, children: "All tools are free to use — no sign-in required." })
       ] }),
       /* @__PURE__ */ jsx("div", { className: `grid gap-4 ${visibleTools.length === 1 ? "grid-cols-1 max-w-xs" : "grid-cols-1 sm:grid-cols-2"}`, children: visibleTools.map((tool) => /* @__PURE__ */ jsxs(
         Link,
         {
           to: tool.to,
-          onClick: tool.requiresAuth && !user ? (e) => {
-            e.preventDefault();
-            openAuthModal();
-          } : void 0,
+          onClick: void 0,
           className: "group rounded-2xl p-6 flex items-start gap-4 no-underline transition-all duration-200",
           style: {
             background: "#ffffff",
@@ -2258,14 +2234,6 @@ function HomePage() {
             /* @__PURE__ */ jsxs("div", { className: "flex-1 min-w-0 pt-0.5", children: [
               /* @__PURE__ */ jsxs("div", { className: "flex items-center gap-2 mb-1", children: [
                 /* @__PURE__ */ jsx("span", { className: "font-semibold text-sm", style: { color: "#222222", letterSpacing: "-0.01em" }, children: tool.label }),
-                tool.requiresAuth && /* @__PURE__ */ jsx(
-                  "span",
-                  {
-                    className: "rounded-full text-[10px] font-bold px-2 py-0.5",
-                    style: { background: "linear-gradient(135deg, #ff385c, #e00b41)", color: "#ffffff", letterSpacing: "0.04em" },
-                    children: "PRO"
-                  }
-                ),
                 tool.badge && /* @__PURE__ */ jsx(
                   "span",
                   {
@@ -2344,17 +2312,17 @@ function HomePage() {
       )) })
     ] }) }),
     /* @__PURE__ */ jsx(LatestAdditions, {}),
-    !user && /* @__PURE__ */ jsx("section", { className: "dot-grid py-20", children: /* @__PURE__ */ jsxs("div", { className: "max-w-2xl mx-auto px-6 text-center", children: [
+    /* @__PURE__ */ jsx("section", { className: "dot-grid py-20", children: /* @__PURE__ */ jsxs("div", { className: "max-w-2xl mx-auto px-6 text-center", children: [
       /* @__PURE__ */ jsx("h2", { className: "font-bold mb-4", style: { fontSize: "clamp(32px, 4vw, 48px)", color: "#1a1a1a", letterSpacing: "-0.04em" }, children: "Ready to find your next EU grant?" }),
-      /* @__PURE__ */ jsx("p", { className: "text-base mb-8", style: { color: "#6a6a6a" }, children: "Create a free account and run your first AI‑powered grant search in under a minute." }),
+      /* @__PURE__ */ jsx("p", { className: "text-base mb-8", style: { color: "#6a6a6a" }, children: "AI-powered grant matching — free, no sign-in required." }),
       /* @__PURE__ */ jsxs(
-        "button",
+        Link,
         {
-          className: "btn-brand btn-pill flex items-center gap-2 mx-auto",
-          onClick: openAuthModal,
+          to: "/grant-match",
+          className: "btn-brand btn-pill flex items-center gap-2 mx-auto no-underline",
           style: { height: 52, fontSize: 16, paddingLeft: 32, paddingRight: 32 },
           children: [
-            "Get started — it's free",
+            "Find grants now",
             /* @__PURE__ */ jsx("svg", { className: "w-4 h-4", fill: "none", stroke: "currentColor", viewBox: "0 0 24 24", children: /* @__PURE__ */ jsx("path", { strokeLinecap: "round", strokeLinejoin: "round", strokeWidth: 2.5, d: "M7 17L17 7M17 7H7M17 7v10" }) })
           ]
         }
@@ -2373,6 +2341,13 @@ function useProjectSearch(filters) {
     placeholderData: keepPreviousData
   });
 }
+const runtimeConfig = typeof window !== "undefined" ? window.__RUNTIME_CONFIG__ : void 0;
+const supabaseUrl = (runtimeConfig == null ? void 0 : runtimeConfig.SUPABASE_URL) || "https://swmvjiygqsuctoltoosi.supabase.co";
+const supabaseAnonKey = (runtimeConfig == null ? void 0 : runtimeConfig.SUPABASE_ANON_KEY) || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InN3bXZqaXlncXN1Y3RvbHRvb3NpIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzM2Njc4MDIsImV4cCI6MjA4OTI0MzgwMn0.DnJPprVjeqYlfMZXGg8No4zO7UBbj4-Brsf6jAySKQo";
+const supabase = createClient(
+  supabaseUrl,
+  supabaseAnonKey
+);
 async function postSearchEnhance(keyword, projects) {
   const { data: { session } } = await supabase.auth.getSession();
   const token = session == null ? void 0 : session.access_token;
@@ -2398,6 +2373,12 @@ function useSearchEnhance() {
       if (err.message === "limit_exceeded") navigate("/pricing");
     }
   });
+}
+const AuthContext = createContext(null);
+function useAuth() {
+  const ctx = useContext(AuthContext);
+  if (!ctx) throw new Error("useAuth must be used within AuthProvider");
+  return ctx;
 }
 async function apiFetch(path, init) {
   const resp = await fetch(path, init);
